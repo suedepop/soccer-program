@@ -1,0 +1,14 @@
+node_modules/
+.next/
+out/
+build/
+*.tsbuildinfo
+next-env.d.ts
+
+# Runtime data — never commit parent uploads or the database
+data/
+
+# Output of scripts/contact-sheet.mjs
+contact-sheets/
+.env
+.env.local

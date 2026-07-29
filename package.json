@@ -1,0 +1,30 @@
+{
+  "name": "weir-high-soccer-program",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Ad order form for the Weir High Soccer program book",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "seed:admin": "node scripts/make-admin.mjs"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "better-sqlite3": "^12.2.0",
+    "jose": "^6.0.11",
+    "next": "^15.4.6",
+    "puppeteer": "^24.15.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "sharp": "^0.34.3"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^24.2.0",
+    "@types/react": "^19.1.9",
+    "@types/react-dom": "^19.1.7",
+    "typescript": "^5.9.2"
+  }
+}

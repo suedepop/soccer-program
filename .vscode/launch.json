@@ -1,0 +1,143 @@
+{
+  // Debug configurations for the Weir High Soccer program ad site.
+  //
+  // Start with "Next.js: full stack" — it runs the dev server, opens Chrome,
+  // and attaches to both, so breakpoints work in server components, route
+  // handlers, and client components alike.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      // Breakpoints in src/app/**/page.tsx, src/app/api/**/route.ts, src/lib/**.
+      "name": "Next.js: server-side",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["--inspect"],
+      "program": "${workspaceFolder}/node_modules/next/dist/bin/next",
+      "args": ["dev"],
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
+      "env": {
+        // Falls back to a dev-only secret if unset, but pinning it keeps you
+        // signed in across restarts.
+        "SESSION_SECRET": "dev-only-secret-change-me-at-least-32-characters",
+        // Headless Chrome hits this URL when rendering print PNGs and PDFs.
+        "PRINT_BASE_URL": "http://127.0.0.1:3000"
+      }
+    },
+    {
+      // Breakpoints in AdEditor, SizePicker, AuthForm, and the other 'use client' files.
+      "name": "Next.js: client-side",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:3000",
+      "webRoot": "${workspaceFolder}",
+      "sourceMapPathOverrides": {
+        "webpack://_N_E/*": "${webRoot}/*"
+      }
+    },
+    {
+      "name": "Next.js: full stack",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["--inspect"],
+      "program": "${workspaceFolder}/node_modules/next/dist/bin/next",
+      "args": ["dev"],
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
+      "env": {
+        "SESSION_SECRET": "dev-only-secret-change-me-at-least-32-characters",
+        "PRINT_BASE_URL": "http://127.0.0.1:3000"
+      },
+      "serverReadyAction": {
+        "action": "debugWithChrome",
+        "killOnServerStop": true,
+        "pattern": "- Local:\\s+(https?://\\S+)",
+        "uriFormat": "%s",
+        "webRoot": "${workspaceFolder}"
+      }
+    },
+    {
+      // Use when you already have a dev server running in a terminal, started
+      // with `node --inspect node_modules/next/dist/bin/next dev`.
+      //
+      // Port 9230, not 9229: `next dev` spawns a child router server, and that
+      // child is what actually runs your route handlers and server components.
+      // Next prints "the Next.js router server should be inspected at 9230"
+      // on startup — that is the one to attach to.
+      "name": "Next.js: attach to running server",
+      "type": "node",
+      "request": "attach",
+      "port": 9230,
+      "restart": true,
+      "skipFiles": ["<node_internals>/**", "**/node_modules/**"]
+    },
+    {
+      // Production build — for reproducing something that only misbehaves
+      // after `npm run build`. Build first, then launch this.
+      "name": "Next.js: production server",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["--inspect"],
+      "program": "${workspaceFolder}/node_modules/next/dist/bin/next",
+      "args": ["start"],
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
+      "env": {
+        "SESSION_SECRET": "dev-only-secret-change-me-at-least-32-characters",
+        "PRINT_BASE_URL": "http://127.0.0.1:3000"
+      }
+    },
+    {
+      // Needs the app already running. Writes throwaway accounts and ads, so
+      // point DATA_DIR somewhere disposable rather than the live data folder.
+      "name": "Script: smoke test",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/scripts/smoke.mjs",
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      // Needs the app already running. Renders every layout and background
+      // into contact-sheet PNGs under ./contact-sheets.
+      "name": "Script: contact sheet",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/scripts/contact-sheet.mjs",
+      "args": ["${input:adminEmail}", "${input:adminPassword}"],
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "name": "Script: grant admin",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/scripts/make-admin.mjs",
+      "args": ["${input:adminEmail}"],
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"]
+    }
+  ],
+  "inputs": [
+    {
+      "id": "adminEmail",
+      "type": "promptString",
+      "description": "Admin email address"
+    },
+    {
+      "id": "adminPassword",
+      "type": "promptString",
+      "description": "Admin password",
+      "password": true
+    }
+  ]
+}
