@@ -291,6 +291,116 @@ for (const path of ['/', '/dashboard', '/admin', '/ads/new', `/ads/${fId}`, `/ad
   check(`GET ${path}`, r.ok, `status=${r.status}`);
 }
 
+// ---------------------------------------------------------------------------
+// 17. Photo library
+// ---------------------------------------------------------------------------
+cookie = '';
+await json('/api/auth/signup', 'POST', {
+  email: `lib${Date.now()}@test.local`,
+  password: 'password123',
+  name: 'Library Tester',
+});
+
+function filesForm(bufs) {
+  const form = new FormData();
+  bufs.forEach((b, i) =>
+    form.append('files', new File([b], `p${i}.jpg`, { type: 'image/jpeg' }))
+  );
+  return form;
+}
+async function getJson(path) {
+  const r = await req(path);
+  return r.json();
+}
+
+const three = [
+  await makeImage(1600, 1200, 60),
+  await makeImage(1600, 1200, 120),
+  await makeImage(400, 300, 180),
+];
+const bulk = await req('/api/photos', { method: 'POST', body: filesForm(three) });
+const bulkJson = await bulk.json();
+check('bulk upload adds several at once', bulk.ok && bulkJson.added === 3, `added=${bulkJson.added}`);
+
+const list = await getJson('/api/photos');
+check(
+  'library lists photos with a limit',
+  list.photos.length === 3 && list.limit === 100,
+  `${list.photos.length} photos, limit ${list.limit}`
+);
+
+// Place one library photo into two different ads.
+const pick = list.photos.find((p) => p.width === 1600);
+const { id: libAdA } = await json('/api/ads', 'POST', { size: 'quarter' });
+const placed = await json(`/api/ads/${libAdA}/photos`, 'POST', { slot: 0, fileId: pick.id });
+check('library photo can be placed in a slot', placed.photo.fileId === pick.id);
+
+const { id: libAdB } = await json('/api/ads', 'POST', { size: 'quarter' });
+await json(`/api/ads/${libAdB}/photos`, 'POST', { slot: 0, fileId: pick.id });
+const afterReuse = await getJson('/api/photos');
+const reused = afterReuse.photos.find((p) => p.id === pick.id);
+check('one photo serves two ads', reused.usedBy.length === 2, `usedBy=${reused.usedBy.length}`);
+
+// Deleting an in-use photo would cascade it out of those ads — must be refused.
+const delUsed = await req(`/api/photos/${pick.id}`, { method: 'DELETE' });
+check('in-use photo cannot be deleted', delUsed.status === 409, `status=${delUsed.status}`);
+const stillThere = await getJson('/api/photos');
+check('refused delete left the photo alone', stillThere.photos.some((p) => p.id === pick.id));
+
+const spare = list.photos.find((p) => p.width === 400);
+const delSpare = await req(`/api/photos/${spare.id}`, { method: 'DELETE' });
+check('unused photo deletes', delSpare.ok, `status=${delSpare.status}`);
+const afterDelete = await getJson('/api/photos');
+check('deleted photo is gone', !afterDelete.photos.some((p) => p.id === spare.id));
+
+// A photo from someone else's library must not be placeable.
+const libCookie = cookie;
+cookie = parentCookie;
+const { id: strangerAd } = await json('/api/ads', 'POST', { size: 'quarter' });
+const steal = await req(`/api/ads/${strangerAd}/photos`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ slot: 0, fileId: pick.id }),
+});
+check('cannot place another account photo', steal.status === 404, `status=${steal.status}`);
+cookie = libCookie;
+
+// ---------------------------------------------------------------------------
+// 18. The 100-photo cap, including partial batches
+// ---------------------------------------------------------------------------
+cookie = '';
+await json('/api/auth/signup', 'POST', {
+  email: `cap${Date.now()}@test.local`,
+  password: 'password123',
+  name: 'Cap Tester',
+});
+
+const capImage = await makeImage(64, 64, 90);
+const fill = await req('/api/photos', { method: 'POST', body: filesForm(Array(98).fill(capImage)) });
+const fillJson = await fill.json();
+check('large batch upload works', fillJson.added === 98, `added=${fillJson.added}`);
+
+// Only 2 slots left, so 5 more should add 2 and report 3 skipped rather than
+// failing the whole batch.
+const over = await req('/api/photos', { method: 'POST', body: filesForm(Array(5).fill(capImage)) });
+const overJson = await over.json();
+check(
+  'batch past the cap adds what fits',
+  overJson.added === 2 && overJson.skipped === 3,
+  `added=${overJson.added} skipped=${overJson.skipped}`
+);
+check('library stops at the cap', overJson.photos.length === 100, `${overJson.photos.length}`);
+
+const totallyFull = await req('/api/photos', { method: 'POST', body: filesForm([capImage]) });
+check('upload to a full library is refused', totallyFull.status === 409, `status=${totallyFull.status}`);
+
+const { id: capAd } = await json('/api/ads', 'POST', { size: 'quarter' });
+const capUpload = new FormData();
+capUpload.set('slot', '0');
+capUpload.set('file', new File([capImage], 'x.jpg', { type: 'image/jpeg' }));
+const capRes = await req(`/api/ads/${capAd}/photos`, { method: 'POST', body: capUpload });
+check('cap also applies to uploads from inside an ad', capRes.status === 409, `status=${capRes.status}`);
+
 const failed = results.filter((r) => !r.ok);
 console.log(`\n${results.length - failed.length}/${results.length} checks passed`);
 if (failed.length) process.exit(1);

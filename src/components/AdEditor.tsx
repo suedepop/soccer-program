@@ -6,8 +6,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import AdCanvas from '@/components/AdCanvas';
 import FontPicker from '@/components/FontPicker';
 import NameEffectPicker from '@/components/NameEffectPicker';
+import PhotoPicker from '@/components/PhotoPicker';
 import RichTextField from '@/components/RichTextField';
 import { useFitScale } from '@/components/useFitScale';
+import { usePhotoLibrary } from '@/components/usePhotoLibrary';
 import { BACKGROUNDS, getBackground } from '@/lib/backgrounds';
 import { getFont, resolveFont } from '@/lib/fonts';
 import { getLayout, layoutsFor, photoQuality, requiredPixels } from '@/lib/layouts';
@@ -29,6 +31,9 @@ export default function AdEditor({ initialAd }: { initialAd: AdView }) {
   const [tab, setTab] = useState<Tab>('layout');
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
+  /** Which slot the library picker is open for, if any. */
+  const [pickerSlot, setPickerSlot] = useState<number | null>(null);
+  const library = usePhotoLibrary();
 
   const spec = AD_SIZES[ad.size];
   const layout = getLayout(ad.layoutId, ad.size);
@@ -92,17 +97,19 @@ export default function AdEditor({ initialAd }: { initialAd: AdView }) {
     [ad.photos]
   );
 
-  const upload = useCallback(
-    async (slot: number, file: File) => {
+  /** Places a photo from the library into a slot. */
+  const assign = useCallback(
+    async (slot: number, fileId: number) => {
       setSaveState('saving');
-      const form = new FormData();
-      form.set('slot', String(slot));
-      form.set('file', file);
-      const res = await fetch(`/api/ads/${initialAd.id}/photos`, { method: 'POST', body: form });
+      const res = await fetch(`/api/ads/${initialAd.id}/photos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slot, fileId }),
+      });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
         setSaveState('error');
-        setError(json.error ?? 'That upload did not work.');
+        setError(json.error ?? 'Could not place that photo.');
         return;
       }
       setError(null);
@@ -110,7 +117,7 @@ export default function AdEditor({ initialAd }: { initialAd: AdView }) {
       const p = json.photo;
       const next: PhotoRef = {
         slot,
-        fileId: p.id,
+        fileId: p.fileId,
         url: p.url,
         width: p.width,
         height: p.height,
@@ -167,6 +174,22 @@ export default function AdEditor({ initialAd }: { initialAd: AdView }) {
 
   return (
     <div className="editor-grid">
+      {pickerSlot !== null && (
+        <PhotoPicker
+          library={library}
+          size={ad.size}
+          slot={layout.photos[pickerSlot]}
+          slotIndex={pickerSlot}
+          currentFileId={photosBySlot.get(pickerSlot)?.fileId}
+          onSelect={async (fileId) => {
+            const slot = pickerSlot;
+            setPickerSlot(null);
+            await assign(slot, fileId);
+          }}
+          onClose={() => setPickerSlot(null)}
+        />
+      )}
+
       {/* ------------------------------------------------------- controls -- */}
       <div>
         <div className="card card-tight" style={{ marginBottom: 14 }}>
@@ -307,9 +330,12 @@ export default function AdEditor({ initialAd }: { initialAd: AdView }) {
         {tab === 'photos' && (
           <div className="slot-list">
             <div className="notice notice-info">
-              For a sharp print we want {Math.round(300)} DPI. Upload the biggest version you have —
-              straight off the phone or camera is ideal. Screenshots and photos saved from Facebook
-              are usually too small.
+              Photos come from your{' '}
+              <Link href="/photos" target="_blank">
+                photo library
+              </Link>
+              . Upload once and use the same picture in as many ads as you like — we check each one
+              against the exact spot you drop it in.
             </div>
             {layout.photos.map((slot, i) => (
               <PhotoSlotRow
@@ -318,7 +344,7 @@ export default function AdEditor({ initialAd }: { initialAd: AdView }) {
                 slot={slot}
                 size={ad.size}
                 photo={photosBySlot.get(i)}
-                onUpload={(file) => upload(i, file)}
+                onChoose={() => setPickerSlot(i)}
                 onRemove={() => removePhoto(i)}
                 onFocal={(x, y) => setFocal(i, x, y)}
               />
@@ -460,7 +486,7 @@ function PhotoSlotRow({
   slot,
   size,
   photo,
-  onUpload,
+  onChoose,
   onRemove,
   onFocal,
 }: {
@@ -468,12 +494,10 @@ function PhotoSlotRow({
   slot: ReturnType<typeof getLayout>['photos'][number];
   size: AdView['size'];
   photo?: PhotoRef;
-  onUpload: (file: File) => Promise<void>;
+  onChoose: () => void;
   onRemove: () => void;
   onFocal: (x: number, y: number) => void;
 }) {
-  const [busy, setBusy] = useState(false);
-  const inputId = `photo-${index}`;
   const required = requiredPixels(size, slot);
   const check = photo ? photoQuality(size, slot, photo) : null;
 
@@ -488,7 +512,14 @@ function PhotoSlotRow({
           style={{ objectPosition: `${photo.focalX * 100}% ${photo.focalY * 100}%` }}
         />
       ) : (
-        <div className="slot-thumb slot-empty">Photo {index + 1}</div>
+        <button
+          type="button"
+          className="slot-thumb slot-empty"
+          onClick={onChoose}
+          style={{ cursor: 'pointer' }}
+        >
+          Choose
+        </button>
       )}
 
       <div className="grow">
@@ -522,27 +553,9 @@ function PhotoSlotRow({
         )}
 
         <div className="row" style={{ marginTop: 8 }}>
-          <label
-            htmlFor={inputId}
-            className="btn btn-sm btn-secondary"
-            style={{ marginBottom: 0, cursor: 'pointer' }}
-          >
-            {busy ? 'Uploading…' : photo ? 'Replace' : 'Upload photo'}
-          </label>
-          <input
-            id={inputId}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            className="visually-hidden"
-            onChange={async (e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              setBusy(true);
-              await onUpload(file);
-              setBusy(false);
-              e.target.value = '';
-            }}
-          />
+          <button className="btn btn-sm btn-secondary" onClick={onChoose}>
+            {photo ? 'Change photo' : 'Choose photo'}
+          </button>
           {photo && (
             <button className="btn btn-sm btn-danger" onClick={onRemove}>
               Remove

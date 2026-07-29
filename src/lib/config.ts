@@ -66,6 +66,13 @@ export const AD_SIZES: Record<
 
 export const AD_SIZE_ORDER: AdSize[] = ['full', 'half', 'quarter'];
 
+/**
+ * How many photos one account may keep in its library. Photos are uploaded
+ * once and then placed into any number of ads, so this is a per-person cap on
+ * stored images, not on ads.
+ */
+export const MAX_LIBRARY_PHOTOS = 100;
+
 /** Print resolution the printer wants. Drives every "photo too small" warning. */
 export const PRINT_DPI = 300;
 

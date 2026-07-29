@@ -20,6 +20,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
             {user ? (
               <>
                 <Link href="/dashboard">My Ads</Link>
+                <Link href="/photos">Photos</Link>
                 <Link href="/ads/new">Create an Ad</Link>
                 {!!user.is_admin && <Link href="/admin">Admin</Link>}
                 <LogoutButton />

@@ -87,21 +87,43 @@ checkpointed — a freshly-used database can be a 4 KB `.sqlite` and a 200 KB
 
 ## What parents see
 
-1. **Pick a size** — Full, Half, or Quarter page (`/ads/new`).
-2. **Design it** (`/ads/[id]/edit`) — a live preview beside four tabs:
+1. **Upload photos** to the library (`/photos`) — up to 100 per account.
+2. **Pick a size** — Full, Half, or Quarter page (`/ads/new`).
+3. **Design it** (`/ads/[id]/edit`) — a live preview beside four tabs:
    - **Layout** — 7 full-page, 6 half-page, 4 quarter-page arrangements.
    - **Style** — 12 backgrounds in the Red Riders' red / black / white, a font for
      the player's name and one for the message, and an effect for the name
      (shadow, glow, outline).
-   - **Photos** — upload per slot, with a resolution check and a 9-point crop control.
+   - **Photos** — choose from the library per slot, with a resolution check and a
+     9-point crop control.
    - **Wording** — player name, message, and attribution, each with bold / italic /
      underline. Everything autosaves.
-3. **Preview and submit** (`/ads/[id]`) — the ad becomes **Payment Due**.
-4. **Pay the boosters** off-site. When an admin records it, the status flips to **Paid**
+4. **Preview and submit** (`/ads/[id]`) — the ad becomes **Payment Due**.
+5. **Pay the boosters** off-site. When an admin records it, the status flips to **Paid**
    and the ad locks.
 
 An account can hold as many ads as they like; `/dashboard` lists them all with status
 and an amount-due total.
+
+### The photo library
+
+Photos live on the account, not on an ad (`/photos`, capped by
+`MAX_LIBRARY_PHOTOS` in `src/lib/config.ts`). A parent uploads once — drag a whole
+folder in if they like — and then places the same picture into as many ads as
+they want. Ordering three ads for three siblings no longer means uploading the
+same team photo three times.
+
+Two rules worth knowing:
+
+- **A photo in use cannot be deleted.** `ad_photos.file_id` cascades on delete, so
+  removing an in-use photo would tear it out of finished ads with no warning. The
+  API refuses and names the ads to clear first.
+- **Uploads past the cap are skipped, not fatal.** Dropping in 40 photos when 5
+  slots remain adds 5 and reports the rest — losing 35 good uploads because the
+  batch crossed a line would be a miserable way to discover the limit.
+
+Uploading straight into a slot from inside the editor still works; the photo just
+lands in the library on its way through.
 
 ### The photo resolution warning
 
@@ -116,6 +138,11 @@ to stretch further. Parents see one of three verdicts per photo — sharp (≥30
 a little small (200–299 DPI), or too small for print (<200 DPI) — with the exact
 pixel size the slot wants. Low-resolution photos are flagged again on the review
 page and in the admin list, but they never block an order.
+
+The same check runs inside the library picker, so each photo is graded for the
+slot being filled rather than in the abstract — an image that is plenty for a
+quarter-page inset can be far too small for a full-bleed hero, and a single
+library-wide verdict would mislead.
 
 ### Fonts
 
@@ -270,6 +297,7 @@ limits.
 | To change...             | Edit                                                                    |
 | ------------------------ | ----------------------------------------------------------------------- |
 | Prices, deadline, copy   | `src/lib/config.ts`                                                     |
+| Photo library size       | `MAX_LIBRARY_PHOTOS` in `src/lib/config.ts`                             |
 | Backgrounds              | `src/lib/backgrounds.ts` — add an object to `BACKGROUNDS`               |
 | Fonts                    | `scripts/fetch-fonts.mjs` + `src/lib/fonts.ts`, then re-run both scripts |
 | Name effects             | `src/lib/effects.ts`                                                    |
@@ -312,7 +340,7 @@ node scripts/fetch-fonts.mjs                            # download woff2 + write
 node scripts/measure-fonts.mjs                          # print avgGlyph / boldRatio
 
 # With the server running:
-node scripts/smoke.mjs                                  # end-to-end check (32 assertions)
+node scripts/smoke.mjs                                  # end-to-end check (46 assertions)
 node scripts/name-fit.mjs <admin-email> <password>      # 459 layout x font x name combinations
 node scripts/contact-sheet.mjs <admin-email> <password> # tile every layout, background, font, effect
 ```

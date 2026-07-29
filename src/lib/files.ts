@@ -92,6 +92,112 @@ export async function storeUpload(userId: number, file: File): Promise<StoredFil
   };
 }
 
+/** One image in a parent's library, ready to drop into any ad. */
+export interface LibraryPhoto {
+  id: number;
+  url: string;
+  width: number;
+  height: number;
+  origName: string;
+  bytes: number;
+  createdAt: string;
+  /** Ads currently placing this photo. Deleting is blocked while non-empty. */
+  usedBy: PhotoUsage[];
+}
+
+export interface PhotoUsage {
+  adId: number;
+  slot: number;
+  playerName: string;
+  status: string;
+}
+
+export function countPhotos(userId: number): number {
+  const row = db()
+    .prepare('SELECT COUNT(*) AS n FROM files WHERE user_id = ?')
+    .get(userId) as { n: number };
+  return row.n;
+}
+
+export function listPhotos(userId: number): LibraryPhoto[] {
+  const rows = db()
+    .prepare(
+      `SELECT id, orig_name, width, height, bytes, created_at
+         FROM files WHERE user_id = ? ORDER BY created_at DESC, id DESC`
+    )
+    .all(userId) as {
+    id: number;
+    orig_name: string;
+    width: number;
+    height: number;
+    bytes: number;
+    created_at: string;
+  }[];
+
+  // One query for every placement, rather than one per photo.
+  const usage = db()
+    .prepare(
+      `SELECT p.file_id, p.slot, a.id AS ad_id, a.player_name, a.status
+         FROM ad_photos p
+         JOIN ads a ON a.id = p.ad_id
+        WHERE a.user_id = ?`
+    )
+    .all(userId) as {
+    file_id: number;
+    slot: number;
+    ad_id: number;
+    player_name: string;
+    status: string;
+  }[];
+
+  const byFile = new Map<number, PhotoUsage[]>();
+  for (const u of usage) {
+    const list = byFile.get(u.file_id) ?? [];
+    list.push({ adId: u.ad_id, slot: u.slot, playerName: u.player_name, status: u.status });
+    byFile.set(u.file_id, list);
+  }
+
+  return rows.map((r) => ({
+    id: r.id,
+    url: `/api/files/${r.id}`,
+    width: r.width,
+    height: r.height,
+    origName: r.orig_name,
+    bytes: r.bytes,
+    createdAt: r.created_at,
+    usedBy: byFile.get(r.id) ?? [],
+  }));
+}
+
+/** Which of this user's ads place the given photo. */
+export function photoUsage(userId: number, fileId: number): PhotoUsage[] {
+  return db()
+    .prepare(
+      `SELECT p.slot, a.id AS adId, a.player_name AS playerName, a.status
+         FROM ad_photos p
+         JOIN ads a ON a.id = p.ad_id
+        WHERE p.file_id = ? AND a.user_id = ?`
+    )
+    .all(fileId, userId) as PhotoUsage[];
+}
+
+/**
+ * Removes a photo from the library and from disk.
+ *
+ * ad_photos cascades on delete, so an in-use photo would silently disappear
+ * out of finished ads. Callers must check {@link photoUsage} first — this
+ * refuses rather than trusting them.
+ */
+export async function deletePhoto(userId: number, fileId: number): Promise<boolean> {
+  const row = getFileRow(fileId);
+  if (!row || row.user_id !== userId) return false;
+  if (photoUsage(userId, fileId).length) return false;
+
+  db().prepare('DELETE FROM files WHERE id = ? AND user_id = ?').run(fileId, userId);
+  await fs.rm(filePath(row), { force: true });
+  return true;
+}
+
 export interface FileRow {
   id: number;
   user_id: number;
