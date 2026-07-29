@@ -30,6 +30,12 @@ export interface Background {
   fonts: { heading: string; body: string };
   /** True when the field is dark — used to pick contrasting UI chrome. */
   dark: boolean;
+  /**
+   * Coarse colour family. Two ads with the same tone read as "a matching pair"
+   * when they land side by side on a printed sheet, so the imposition in
+   * src/lib/impose.ts uses this to space them apart.
+   */
+  tone: 'light' | 'red' | 'dark';
 }
 
 const RED = '#C8102E';
@@ -45,6 +51,7 @@ export const BACKGROUNDS: Background[] = [
   {
     id: 'classic-white',
     name: 'Classic White',
+    tone: 'light',
     base: { background: '#FFFFFF' },
     frame: {
       inset: '2.2%',
@@ -65,6 +72,7 @@ export const BACKGROUNDS: Background[] = [
   {
     id: 'red-rider',
     name: 'Red Rider',
+    tone: 'red',
     base: {
       background: `linear-gradient(160deg, ${RED} 0%, ${RED} 45%, ${DEEP_RED} 100%)`,
     },
@@ -86,6 +94,7 @@ export const BACKGROUNDS: Background[] = [
   {
     id: 'blackout',
     name: 'Blackout',
+    tone: 'dark',
     base: { background: '#0B0B0C' },
     overlay: {
       background: `radial-gradient(120% 70% at 50% 0%, rgba(200,16,46,0.55) 0%, rgba(200,16,46,0.12) 45%, rgba(0,0,0,0) 75%)`,
@@ -104,6 +113,7 @@ export const BACKGROUNDS: Background[] = [
   {
     id: 'jersey-stripes',
     name: 'Jersey Stripes',
+    tone: 'light',
     base: { background: '#FFFFFF' },
     overlay: {
       background: `
@@ -126,6 +136,7 @@ export const BACKGROUNDS: Background[] = [
   {
     id: 'pitch-lines',
     name: 'Pitch Lines',
+    tone: 'dark',
     base: { background: `linear-gradient(180deg, #16151A 0%, #0B0B0C 100%)` },
     overlay: {
       backgroundImage: svg(
@@ -148,6 +159,7 @@ export const BACKGROUNDS: Background[] = [
   {
     id: 'corner-chevrons',
     name: 'Corner Chevrons',
+    tone: 'light',
     base: { background: '#FFFFFF' },
     overlay: {
       backgroundImage: svg(
@@ -169,6 +181,7 @@ export const BACKGROUNDS: Background[] = [
   {
     id: 'halftone-fade',
     name: 'Halftone Fade',
+    tone: 'red',
     base: { background: `linear-gradient(200deg, ${RED} 0%, ${DEEP_RED} 55%, ${INK} 100%)` },
     overlay: {
       backgroundImage:
@@ -191,6 +204,7 @@ export const BACKGROUNDS: Background[] = [
   {
     id: 'vintage-program',
     name: 'Vintage Program',
+    tone: 'light',
     base: { background: CREAM },
     overlay: {
       backgroundImage:
@@ -216,6 +230,7 @@ export const BACKGROUNDS: Background[] = [
   {
     id: 'stadium-lights',
     name: 'Stadium Lights',
+    tone: 'dark',
     base: { background: '#0A0A0B' },
     overlay: {
       background: `
@@ -235,6 +250,7 @@ export const BACKGROUNDS: Background[] = [
   {
     id: 'hex-ball',
     name: 'Hex Ball',
+    tone: 'light',
     base: { background: '#FBFBFB' },
     overlay: {
       backgroundImage: svg(
@@ -257,6 +273,7 @@ export const BACKGROUNDS: Background[] = [
   {
     id: 'red-black-split',
     name: 'Red & Black Split',
+    tone: 'dark',
     base: {
       background: `linear-gradient(118deg, ${INK} 0%, ${INK} 46%, ${DEEP_RED} 46.5%, ${DEEP_RED} 100%)`,
     },
@@ -279,6 +296,7 @@ export const BACKGROUNDS: Background[] = [
   {
     id: 'chalk-script',
     name: 'Chalkboard',
+    tone: 'dark',
     base: { background: '#1C1B1A' },
     overlay: {
       backgroundImage:

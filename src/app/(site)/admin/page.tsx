@@ -5,7 +5,7 @@ import AdminAdControls from '@/components/AdminAdControls';
 import StatusBadge from '@/components/StatusBadge';
 import { currentUser } from '@/lib/auth';
 import { listAllAds } from '@/lib/ads';
-import { imposeSheets } from '@/lib/impose';
+import { fourUpSheetCount, imposeSheets } from '@/lib/impose';
 import { getLayout, photoQuality } from '@/lib/layouts';
 import { AD_SIZES, AD_STATUS, CSS_DPI, formatMoney, type AdStatus } from '@/lib/config';
 
@@ -40,6 +40,7 @@ export default async function AdminPage({
   const bookAds = all.filter((a) => a.status === 'paid' || a.status === 'submitted');
   const sheets = imposeSheets(bookAds);
   const paidSheets = imposeSheets(all.filter((a) => a.status === 'paid'));
+  const fourUp = fourUpSheetCount(sheets);
 
   return (
     <div className="wrap page">
@@ -60,9 +61,17 @@ export default async function AdminPage({
         <h3>Print files</h3>
         <p style={{ fontSize: 14, color: 'var(--muted)' }}>
           Everything renders at 300 DPI from the same layout the parent previewed. The PDF is the
-          assembled book — full pages get their own sheet, halves pair up, quarters go four to a
-          page.
+          assembled book — full pages get their own sheet, and half pages are paired with two
+          quarters where possible so the book isn’t a grid of small boxes. Similar backgrounds and
+          layouts are kept off the same sheet.
         </p>
+        {fourUp > 0 && (
+          <div className="notice notice-info" style={{ marginBottom: 12 }}>
+            {fourUp} sheet{fourUp === 1 ? '' : 's'} still {fourUp === 1 ? 'has' : 'have'} four
+            quarter-page ads. There aren’t enough half-page ads left to pair them with — selling a
+            few more half pages would break them up.
+          </div>
+        )}
         <div className="row">
           <a className="btn" href="/api/admin/program/pdf">
             Program PDF ({sheets.length} pages)

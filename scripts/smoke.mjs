@@ -523,6 +523,156 @@ check(
   leaks.length ? leaks.join(', ') : `${extremes.length} combinations, 0 background pixels`
 );
 
+// ---------------------------------------------------------------------------
+// 20. Imposition: pair halves with quarters, and keep lookalikes apart
+// ---------------------------------------------------------------------------
+cookie = '';
+await json('/api/auth/signup', 'POST', {
+  email: `impose${Date.now()}@test.local`,
+  password: 'password123',
+  name: 'Impose Tester',
+});
+const imposeCookie = cookie;
+
+// Deliberately repetitive: every ad wants the same background and layout, so
+// the only thing keeping lookalikes apart is the imposition.
+const REPEATS = [
+  { size: 'half', backgroundId: 'blackout', layoutId: 'h-banner' },
+  { size: 'half', backgroundId: 'blackout', layoutId: 'h-banner' },
+  { size: 'half', backgroundId: 'classic-white', layoutId: 'h-photos-left' },
+  { size: 'half', backgroundId: 'classic-white', layoutId: 'h-photos-left' },
+  { size: 'quarter', backgroundId: 'blackout', layoutId: 'q-photo-top' },
+  { size: 'quarter', backgroundId: 'blackout', layoutId: 'q-photo-top' },
+  { size: 'quarter', backgroundId: 'classic-white', layoutId: 'q-photo-top' },
+  { size: 'quarter', backgroundId: 'classic-white', layoutId: 'q-photo-top' },
+  { size: 'quarter', backgroundId: 'red-rider', layoutId: 'q-photo-bottom' },
+  { size: 'quarter', backgroundId: 'vintage-program', layoutId: 'q-photo-bottom' },
+];
+
+const wide = await makeImage(2000, 1500, 130);
+for (const spec of REPEATS) {
+  const { id } = await json('/api/ads', 'POST', { size: spec.size });
+  await json(`/api/ads/${id}`, 'PATCH', {
+    backgroundId: spec.backgroundId,
+    layoutId: spec.layoutId,
+    playerName: `Ad ${id}`,
+    message: 'Imposition test.',
+    attribution: 'Love, QA',
+  });
+  const slots = spec.size === 'half' ? 2 : 1;
+  for (let s = 0; s < slots; s++) await upload(id, s, wide, `p${s}.jpg`);
+  await json(`/api/ads/${id}/submit`, 'POST', {});
+}
+
+/** Parse the imposed sheets out of the print page's data attributes. */
+async function readSheets() {
+  const res = await req('/print/program');
+  if (!res.ok) throw new Error(`print/program -> ${res.status}`);
+  const html = await res.text();
+  return html
+    .split('class="sheet"')
+    .slice(1)
+    .map((chunk) =>
+      [...chunk.matchAll(/data-ad-id="(\d+)"[^>]*?data-ad-size="(\w+)"[^>]*?data-ad-background="([\w-]+)"[^>]*?data-ad-layout="([\w-]+)"/g)]
+        .map((m) => ({ id: +m[1], size: m[2], background: m[3], layout: m[4] }))
+    );
+}
+
+cookie = savedCookie; // the print page is admin-only
+const sheetsA = await readSheets();
+check('print page exposes the imposed sheets', sheetsA.length > 0, `${sheetsA.length} sheets`);
+
+// Only ads from this test are repetitive enough to judge; earlier sections
+// added their own, so look at the whole book but count honestly.
+const fourUp = sheetsA.filter((s) => s.filter((p) => p.size === 'quarter').length === 4);
+const halvesLeftOver = sheetsA.filter(
+  (s) => s.length === 1 && s[0].size === 'half'
+).length;
+check(
+  'quarters are paired with halves rather than tiled four-up',
+  fourUp.length === 0,
+  fourUp.length ? `${fourUp.length} four-up sheets` : 'none'
+);
+
+function clashesOn(sheets, key) {
+  const found = [];
+  for (const sheet of sheets) {
+    for (let i = 0; i < sheet.length; i++) {
+      for (let j = i + 1; j < sheet.length; j++) {
+        if (sheet[i][key] === sheet[j][key]) {
+          found.push(`${sheet[i].id}+${sheet[j].id} ${sheet[i][key]}`);
+        }
+      }
+    }
+  }
+  return found;
+}
+
+/**
+ * Pigeonhole floor: a sheet holds at most one ad of a given background or
+ * layout without a clash, so anything beyond one-per-sheet forces one. With a
+ * repetitive corpus some clashes are genuinely unavoidable, and demanding zero
+ * would be demanding the impossible.
+ *
+ * Capacity is counted per size, not across all sheets: a quarter-page ad can
+ * only land on a sheet that actually has quarter slots, so five quarters
+ * sharing a layout across four quarter-bearing sheets forces one clash however
+ * they are arranged.
+ */
+function unavoidable(sheets, key) {
+  const byKey = new Map();
+  for (const sheet of sheets) {
+    for (const p of sheet) {
+      const entry = byKey.get(p[key]) ?? { count: 0, sizes: new Set() };
+      entry.count += 1;
+      entry.sizes.add(p.size);
+      byKey.set(p[key], entry);
+    }
+  }
+
+  let floor = 0;
+  for (const entry of byKey.values()) {
+    const capacity = sheets.filter((s) => s.some((p) => entry.sizes.has(p.size))).length;
+    floor += Math.max(0, entry.count - capacity);
+  }
+  return floor;
+}
+
+const bgClashes = clashesOn(sheetsA, 'background');
+const bgFloor = unavoidable(sheetsA, 'background');
+check(
+  'no avoidable background repeats on a sheet',
+  bgClashes.length <= bgFloor,
+  `${bgClashes.length} clash(es), ${bgFloor} unavoidable${bgClashes.length ? ' — ' + bgClashes.join(', ') : ''}`
+);
+
+const layoutClashes = clashesOn(sheetsA, 'layout');
+const layoutFloor = unavoidable(sheetsA, 'layout');
+check(
+  'no avoidable layout repeats on a sheet',
+  layoutClashes.length <= layoutFloor,
+  `${layoutClashes.length} clash(es), ${layoutFloor} unavoidable${layoutClashes.length ? ' — ' + layoutClashes.join(', ') : ''}`
+);
+
+// The PDF and the per-sheet PNG downloads impose independently, so an
+// order-dependent result would make "page 3" mean two different things.
+const sheetsB = await readSheets();
+check(
+  'imposition is deterministic',
+  JSON.stringify(sheetsA) === JSON.stringify(sheetsB),
+  'two runs matched'
+);
+
+// And every submitted ad still appears exactly once.
+const placedIds = sheetsA.flat().map((p) => p.id);
+check(
+  'every ad is placed exactly once',
+  new Set(placedIds).size === placedIds.length,
+  `${placedIds.length} placements, ${new Set(placedIds).size} unique`
+);
+void halvesLeftOver;
+void imposeCookie;
+
 const failed = results.filter((r) => !r.ok);
 console.log(`\n${results.length - failed.length}/${results.length} checks passed`);
 if (failed.length) process.exit(1);

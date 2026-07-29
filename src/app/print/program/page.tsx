@@ -41,6 +41,13 @@ export default async function PrintProgramPage({
           {sheet.map((p) => (
             <div
               key={p.ad.id}
+              // Exposed so scripts/smoke.mjs can check the imposition without
+              // re-implementing it: which ads share a sheet, and what they look
+              // like.
+              data-ad-id={p.ad.id}
+              data-ad-size={p.ad.size}
+              data-ad-background={p.ad.backgroundId}
+              data-ad-layout={p.ad.layoutId}
               style={{
                 position: 'absolute',
                 left: `${p.x}%`,

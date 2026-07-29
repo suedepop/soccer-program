@@ -283,8 +283,33 @@ the book currently runs to.
 
 Each is available for everything in the book, or for paid ads only.
 
-Pages are imposed automatically: full-page ads get their own sheet, half pages
-pair up, and quarter pages go four to a sheet (two per half-slot).
+### Imposition
+
+A sheet holds two half-page bands; each band takes one half-page ad or two
+quarters side by side. Full pages get a sheet to themselves. Beyond fitting,
+`src/lib/impose.ts` tries to make the book look composed rather than sorted:
+
+- **Halves are paired with quarters first.** Draining the halves before touching
+  the quarters — the obvious order — leaves every remaining quarter to be tiled
+  four to a sheet, which reads as a grid of small boxes. Mixing them keeps
+  four-up sheets down to whatever the ad mix genuinely forces, and the admin
+  page says how many are left and why.
+- **Lookalikes are kept apart.** Each slot takes the least-similar ad still
+  waiting, scoring a shared background hardest, then a shared layout, then a
+  shared colour family (`tone` on each background). A greedy pass alone is
+  short-sighted — the first ad on a sheet is chosen before anything is known
+  about what will join it — so a second pass swaps same-size ads between sheets
+  wherever that strictly improves things.
+
+Some repeats are unavoidable: five quarters sharing a layout cannot be spread
+across four quarter-bearing sheets however they are arranged. The smoke test
+asserts against that pigeonhole floor rather than against zero, so it fails on
+a real regression instead of on arithmetic.
+
+**The result is deterministic** — same ads in, same sheets out. That matters
+more than it looks: the assembled PDF and the per-sheet PNG downloads impose
+independently, so anything order-dependent would make "page 3" mean two
+different things.
 
 ---
 
@@ -379,7 +404,7 @@ node scripts/fetch-fonts.mjs                            # download woff2 + write
 node scripts/measure-fonts.mjs                          # print avgGlyph / boldRatio
 
 # With the server running:
-node scripts/smoke.mjs                                  # end-to-end check (53 assertions)
+node scripts/smoke.mjs                                  # end-to-end check (59 assertions)
 node scripts/name-fit.mjs <admin-email> <password>      # 459 layout x font x name combinations
 node scripts/contact-sheet.mjs <admin-email> <password> # tile every layout, background, font, effect
 ```
