@@ -83,6 +83,48 @@ const parentCookie = cookie;
 const { id: qId } = await json('/api/ads', 'POST', { size: 'quarter' });
 check('created quarter ad', !!qId, `id=${qId}`);
 
+// 3b. new ads start with sample text so the preview is not an empty frame.
+// There is no GET for a single ad; a no-op PATCH echoes it back.
+const { ad: fresh } = await json(`/api/ads/${qId}`, 'PATCH', {});
+check(
+  'new ad is pre-filled with sample text',
+  fresh.playerName === 'Player Name' &&
+    fresh.message.startsWith('Lorem ipsum') &&
+    fresh.attribution === '- All of us at work',
+  `${JSON.stringify(fresh.playerName)} / ${JSON.stringify(fresh.attribution)}`
+);
+
+// 3c. ...which must NOT be submittable. Pre-filled text passes a plain
+// "is it empty?" check, so this is the only thing standing between a
+// distracted parent and a printed page of Lorem ipsum.
+const untouched = await json('/api/ads', 'POST', { size: 'quarter' });
+const untouchedSubmit = await req(`/api/ads/${untouched.id}/submit`, { method: 'POST' });
+const untouchedBody = await untouchedSubmit.json().catch(() => ({}));
+check(
+  'untouched sample text cannot be submitted',
+  untouchedSubmit.status === 422,
+  `status=${untouchedSubmit.status}`
+);
+check(
+  'the refusal names both placeholder fields',
+  /Player Name/.test(untouchedBody.error ?? '') && /Lorem ipsum/i.test(untouchedBody.error ?? ''),
+  untouchedBody.error ?? ''
+);
+
+// 3d. real name + real message is enough; the default "from" line is a phrase
+// someone might genuinely mean, so it is deliberately not blocked.
+await json(`/api/ads/${untouched.id}`, 'PATCH', {
+  playerName: 'Real Player',
+  message: 'A real message from a real family.',
+});
+await upload(untouched.id, 0, await makeImage(1600, 1200, 55), 'ok.jpg');
+const defaultFromOk = await req(`/api/ads/${untouched.id}/submit`, { method: 'POST' });
+check(
+  'default “from” line does not block submission',
+  defaultFromOk.ok,
+  `status=${defaultFromOk.status}`
+);
+
 // 4. upload a big photo + a tiny photo, check metadata round-trips
 const big = await makeImage(3000, 2400, 200);
 const tiny = await makeImage(320, 240, 90);

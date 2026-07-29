@@ -14,7 +14,7 @@ import { BACKGROUNDS, getBackground } from '@/lib/backgrounds';
 import { getFont, resolveFont } from '@/lib/fonts';
 import { getLayout, layoutsFor, photoQuality, requiredPixels } from '@/lib/layouts';
 import { stripMarkup } from '@/lib/richtext';
-import { AD_SIZES, CSS_DPI, TEAMS, TEXT_LIMITS, formatMoney } from '@/lib/config';
+import { AD_SIZES, CSS_DPI, DEFAULT_AD_TEXT, TEAMS, TEXT_LIMITS, formatMoney } from '@/lib/config';
 import type { AdView, PhotoRef } from '@/lib/types';
 
 type Tab = 'layout' | 'style' | 'photos' | 'words';
@@ -375,6 +375,7 @@ export default function AdEditor({ initialAd }: { initialAd: AdView }) {
               value={ad.playerName}
               maxVisible={TEXT_LIMITS.playerName}
               placeholder="Kylie Marsh"
+              sampleValue={DEFAULT_AD_TEXT.playerName}
               onChange={(playerName) => queue({ playerName })}
             />
 
@@ -386,6 +387,7 @@ export default function AdEditor({ initialAd }: { initialAd: AdView }) {
               multiline
               minHeight={ad.size === 'quarter' ? 110 : 160}
               placeholder="Kylie, we have loved watching you play over the years and can’t wait to see what the future holds."
+              sampleValue={DEFAULT_AD_TEXT.message}
               onChange={(message) => queue({ message })}
               hint="The type shrinks automatically to fit — shorter messages print larger."
             />
@@ -396,6 +398,7 @@ export default function AdEditor({ initialAd }: { initialAd: AdView }) {
               value={ad.attribution}
               maxVisible={TEXT_LIMITS.attribution}
               placeholder="Love, Mom and Dad"
+              sampleValue={DEFAULT_AD_TEXT.attribution}
               onChange={(attribution) => queue({ attribution })}
             />
 

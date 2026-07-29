@@ -98,6 +98,17 @@ checkpointed — a freshly-used database can be a 4 KB `.sqlite` and a 200 KB
      9-point crop control.
    - **Wording** — player name, message, and attribution, each with bold / italic /
      underline. Everything autosaves.
+
+   New ads start pre-filled with the sample text in `DEFAULT_AD_TEXT`
+   (`src/lib/config.ts`) so the preview is a real, laid-out ad from the first
+   second rather than an empty frame. Focusing a field that still holds its
+   sample selects the whole thing, so typing replaces it.
+
+   **`validateForSubmit` refuses to submit while the name or message is still the
+   sample.** Pre-filled text passes an "is it empty?" check, so without that guard
+   a distracted parent could pay for a printed page of Lorem ipsum. The default
+   *from* line is deliberately not blocked — "- All of us at work" is a phrase a
+   business or a group of coworkers might genuinely mean.
 4. **Preview and submit** (`/ads/[id]`) — the ad becomes **Payment Due**.
 5. **Pay the boosters** off-site. When an admin records it, the status flips to **Paid**
    and the ad locks.
@@ -297,6 +308,7 @@ limits.
 | To change...             | Edit                                                                    |
 | ------------------------ | ----------------------------------------------------------------------- |
 | Prices, deadline, copy   | `src/lib/config.ts`                                                     |
+| Sample text on a new ad  | `DEFAULT_AD_TEXT` in `src/lib/config.ts`                                |
 | Photo library size       | `MAX_LIBRARY_PHOTOS` in `src/lib/config.ts`                             |
 | Backgrounds              | `src/lib/backgrounds.ts` — add an object to `BACKGROUNDS`               |
 | Fonts                    | `scripts/fetch-fonts.mjs` + `src/lib/fonts.ts`, then re-run both scripts |
@@ -340,7 +352,7 @@ node scripts/fetch-fonts.mjs                            # download woff2 + write
 node scripts/measure-fonts.mjs                          # print avgGlyph / boldRatio
 
 # With the server running:
-node scripts/smoke.mjs                                  # end-to-end check (46 assertions)
+node scripts/smoke.mjs                                  # end-to-end check (50 assertions)
 node scripts/name-fit.mjs <admin-email> <password>      # 459 layout x font x name combinations
 node scripts/contact-sheet.mjs <admin-email> <password> # tile every layout, background, font, effect
 ```

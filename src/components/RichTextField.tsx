@@ -27,6 +27,7 @@ export default function RichTextField({
   onChange,
   maxVisible,
   placeholder,
+  sampleValue,
   multiline = false,
   minHeight,
   hint,
@@ -38,6 +39,12 @@ export default function RichTextField({
   /** Cap on visible characters; the markers themselves don't count. */
   maxVisible: number;
   placeholder?: string;
+  /**
+   * The sample text a new ad starts with. While the field still holds it
+   * untouched, focusing selects the lot so the first keystroke replaces it —
+   * pre-filled text is only helpful if it is trivial to type over.
+   */
+  sampleValue?: string;
   multiline?: boolean;
   minHeight?: number;
   hint?: React.ReactNode;
@@ -95,11 +102,16 @@ export default function RichTextField({
     onChange(next);
   }
 
+  const untouchedSample = sampleValue !== undefined && value === sampleValue;
+
   const shared = {
     id,
     value,
     placeholder,
     onKeyDown,
+    onFocus: (e: React.FocusEvent<Field>) => {
+      if (untouchedSample) e.target.select();
+    },
     onChange: (e: React.ChangeEvent<Field>) => handleChange(e.target.value),
   };
 
@@ -139,6 +151,10 @@ export default function RichTextField({
       <div className="hint">
         {tip ? (
           <span style={{ color: 'var(--warn)' }}>{tip}</span>
+        ) : untouchedSample ? (
+          <span style={{ color: 'var(--warn)' }}>
+            Sample text — replace it with your own before submitting.
+          </span>
         ) : (
           <>
             {visible}/{maxVisible} characters. {hint}

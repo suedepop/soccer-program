@@ -106,6 +106,22 @@ export function formatMoney(cents: number): string {
   return `$${(cents / 100).toFixed(2).replace(/\.00$/, '')}`;
 }
 
+/**
+ * Text a new ad starts with, so the live preview shows a real, laid-out ad
+ * from the first second instead of an empty frame.
+ *
+ * Because these are stored values rather than greyed-out hints, an untouched
+ * ad would otherwise pass the "is it filled in?" check and go to print reading
+ * "Lorem ipsum". `validateForSubmit` compares against them and refuses — see
+ * the note there about which fields are treated as placeholders.
+ */
+export const DEFAULT_AD_TEXT = {
+  playerName: 'Player Name',
+  message:
+    'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse faucibus eget lorem sed tincidunt. Curabitur id libero sit amet magna lobortis gravida.',
+  attribution: '- All of us at work',
+} as const;
+
 /** Limits on the text a parent can actually see — markup is not counted. */
 export const TEXT_LIMITS = {
   playerName: 60,

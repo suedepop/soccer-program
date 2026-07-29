@@ -1,6 +1,13 @@
 import 'server-only';
 import { db, now } from './db';
-import { AD_SIZES, STORAGE_LIMITS, type AdSize, type AdStatus, type TeamId } from './config';
+import {
+  AD_SIZES,
+  DEFAULT_AD_TEXT,
+  STORAGE_LIMITS,
+  type AdSize,
+  type AdStatus,
+  type TeamId,
+} from './config';
 import { defaultLayoutId, getLayout } from './layouts';
 import { DEFAULT_BACKGROUND_ID, getBackground } from './backgrounds';
 import { isNameEffectId } from './effects';
@@ -90,10 +97,20 @@ export function createAd(userId: number, size: AdSize): AdView {
   const spec = AD_SIZES[size];
   const info = db()
     .prepare(
-      `INSERT INTO ads (user_id, size, layout_id, background_id, price_cents)
-       VALUES (?, ?, ?, ?, ?)`
+      `INSERT INTO ads (user_id, size, layout_id, background_id, price_cents,
+                        player_name, message, attribution)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
     )
-    .run(userId, size, defaultLayoutId(size), DEFAULT_BACKGROUND_ID, spec.priceCents);
+    .run(
+      userId,
+      size,
+      defaultLayoutId(size),
+      DEFAULT_BACKGROUND_ID,
+      spec.priceCents,
+      DEFAULT_AD_TEXT.playerName,
+      DEFAULT_AD_TEXT.message,
+      DEFAULT_AD_TEXT.attribution
+    );
   return getAd(Number(info.lastInsertRowid))!;
 }
 
@@ -271,11 +288,32 @@ export function validateForSubmit(ad: AdView): AdIssue[] {
   const layout = getLayout(ad.layoutId, ad.size);
 
   // Strip markup first — a field holding only formatting marks is still empty.
-  if (!stripMarkup(ad.playerName).trim()) {
+  const name = stripMarkup(ad.playerName).trim();
+  const message = stripMarkup(ad.message).trim();
+
+  // New ads ship with sample text so the preview is not an empty frame, which
+  // means "not empty" is no longer proof that anyone wrote anything. Refuse the
+  // two fields whose defaults could only ever be placeholder.
+  //
+  // The default attribution ("- All of us at work") is deliberately NOT checked:
+  // it is a phrase a business or a group of coworkers might genuinely mean, and
+  // blocking it would nag people who are already finished.
+  if (!name) {
     issues.push({ field: 'playerName', message: 'Add the player’s name.' });
+  } else if (name === DEFAULT_AD_TEXT.playerName) {
+    issues.push({
+      field: 'playerName',
+      message: `Replace “${DEFAULT_AD_TEXT.playerName}” with the player’s actual name.`,
+    });
   }
-  if (!stripMarkup(ad.message).trim()) {
+
+  if (!message) {
     issues.push({ field: 'message', message: 'Add your message.' });
+  } else if (message === stripMarkup(DEFAULT_AD_TEXT.message).trim()) {
+    issues.push({
+      field: 'message',
+      message: 'Replace the sample “Lorem ipsum” text with your own message.',
+    });
   }
   if (!stripMarkup(ad.attribution).trim()) {
     issues.push({ field: 'attribution', message: 'Add who the ad is from (e.g. “Love, Mom and Dad”).' });
