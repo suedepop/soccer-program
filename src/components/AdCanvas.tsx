@@ -5,7 +5,7 @@ import { getNameEffect } from '@/lib/effects';
 import { resolveFont, type AdFont } from '@/lib/fonts';
 import { getLayout, placePhoto, TYPE_BASE, type Box, type PhotoSlot } from '@/lib/layouts';
 import { fitBodyText, fitHeading } from '@/lib/fit';
-import { boldFraction, stripMarkup } from '@/lib/richtext';
+import { boldFraction, preventOrphans, stripMarkup } from '@/lib/richtext';
 import RichText from '@/components/RichText';
 import type { AdView } from '@/lib/types';
 
@@ -20,7 +20,7 @@ export interface AdCanvasProps {
     | 'attribution'
     | 'photos'
   > &
-    Partial<Pick<AdView, 'headingFont' | 'bodyFont' | 'nameEffect'>>;
+    Partial<Pick<AdView, 'headingFont' | 'bodyFont' | 'nameEffect' | 'textScale'>>;
   /** 1 = actual print size on a 96dpi screen. Preview uses e.g. 0.45. */
   scale?: number;
   /** Render dashed drop targets for empty slots (editor only). */
@@ -90,12 +90,17 @@ export default function AdCanvas({
     type.name * (layout.nameScale ?? 1) * headingFont.scale,
     { avgGlyph: headingFont.headingGlyph }
   );
+  const textScale = ad.textScale ?? 1;
   const messageFit = fitBodyText(
     messagePlain,
     (layout.message.w / 100) * W,
     (layout.message.h / 100) * H,
     type.message * (layout.messageScale ?? 1) * bodyFont.scale,
-    { avgGlyph: effectiveGlyph(bodyFont, messageSource), lineHeight: bodyFont.lineHeight }
+    {
+      avgGlyph: effectiveGlyph(bodyFont, messageSource),
+      lineHeight: bodyFont.lineHeight,
+      scale: textScale,
+    }
   );
   const attributionFit = fitBodyText(
     attributionPlain,
@@ -107,11 +112,24 @@ export default function AdCanvas({
       lineHeight: bodyFont.lineHeight,
       minRatio: 0.6,
       maxRatio: 1.1,
+      scale: textScale,
     }
   );
 
   // Names use the family's real heavy instance; inline **bold** inside body
   // copy stays at 700 (or a gentler 600 where Chrome has to synthesise it).
+  /**
+   * How long the glued last-two-words may be, as a share of one line. A fixed
+   * character count cannot work: 22 characters is comfortable on a full-page
+   * line and wider than a quarter-page one, and an over-long unbreakable run
+   * would rather overflow the box than wrap.
+   */
+  const glueLimit = (boxWidthPercent: number, fontSize: number) =>
+    Math.floor(((boxWidthPercent / 100) * W) / (fontSize * bodyFont.avgGlyph) * 0.7);
+
+  const messageGlue = glueLimit(layout.message.w, messageFit.fontSize);
+  const attributionGlue = glueLimit(layout.attribution.w, attributionFit.fontSize);
+
   const headingWeight = headingFont.headingWeight;
   const bodyBold = bodyFont.syntheticBold ? 600 : 700;
 
@@ -284,6 +302,7 @@ export default function AdCanvas({
 
         {/* Message */}
         <div
+          data-ad-text-box="message"
           style={{
             ...pct(layout.message),
             display: 'flex',
@@ -293,6 +312,7 @@ export default function AdCanvas({
           }}
         >
           <div
+            data-ad-text-content="message"
             style={{
               fontFamily: bodyFont.stack,
               fontWeight: 400,
@@ -303,12 +323,13 @@ export default function AdCanvas({
               opacity: ad.message ? 1 : 0.45,
             }}
           >
-            <RichText source={messageSource} boldWeight={bodyBold} />
+            <RichText source={preventOrphans(messageSource, messageGlue)} boldWeight={bodyBold} />
           </div>
         </div>
 
         {/* Attribution */}
         <div
+          data-ad-text-box="attribution"
           style={{
             ...pct(layout.attribution),
             display: 'flex',
@@ -318,6 +339,7 @@ export default function AdCanvas({
           }}
         >
           <div
+            data-ad-text-content="attribution"
             style={{
               fontFamily: bodyFont.stack,
               fontWeight: 600,
@@ -328,7 +350,10 @@ export default function AdCanvas({
               opacity: ad.attribution ? 1 : 0.45,
             }}
           >
-            <RichText source={attributionSource} boldWeight={bodyBold} />
+            <RichText
+              source={preventOrphans(attributionSource, attributionGlue)}
+              boldWeight={bodyBold}
+            />
           </div>
         </div>
       </div>

@@ -3,11 +3,19 @@ import { db, now } from './db';
 import {
   AD_SIZES,
   DEFAULT_AD_TEXT,
+  MAX_TEXT_SCALE,
+  MIN_TEXT_SCALE,
   STORAGE_LIMITS,
   type AdSize,
   type AdStatus,
   type TeamId,
 } from './config';
+
+/** Keeps a stored size request inside the range the editor offers. */
+function clampTextScale(value: number): number {
+  if (!Number.isFinite(value)) return 1;
+  return Math.min(MAX_TEXT_SCALE, Math.max(MIN_TEXT_SCALE, value));
+}
 import { clampPan, clampZoom, defaultLayoutId, getLayout } from './layouts';
 import { DEFAULT_BACKGROUND_ID, getBackground } from './backgrounds';
 import { isNameEffectId } from './effects';
@@ -28,6 +36,7 @@ interface AdRow {
   heading_font: string;
   body_font: string;
   name_effect: string;
+  text_scale: number;
   status: string;
   price_cents: number;
   admin_notes: string;
@@ -85,6 +94,7 @@ function toView(row: AdRow): AdView {
     headingFont: row.heading_font ?? '',
     bodyFont: row.body_font ?? '',
     nameEffect: row.name_effect ?? '',
+    textScale: clampTextScale(row.text_scale ?? 1),
     status: row.status as AdStatus,
     priceCents: row.price_cents,
     adminNotes: row.admin_notes,
@@ -171,6 +181,7 @@ export interface AdPatch {
   bodyFont?: string;
   /** '' means no effect. */
   nameEffect?: string;
+  textScale?: number;
 }
 
 export function updateAd(id: number, patch: AdPatch): AdView | null {
@@ -203,7 +214,7 @@ export function updateAd(id: number, patch: AdPatch): AdView | null {
     .prepare(
       `UPDATE ads SET layout_id = ?, background_id = ?, team = ?, player_name = ?,
                       message = ?, attribution = ?, heading_font = ?, body_font = ?,
-                      name_effect = ?, updated_at = ?
+                      name_effect = ?, text_scale = ?, updated_at = ?
         WHERE id = ?`
     )
     .run(
@@ -216,6 +227,9 @@ export function updateAd(id: number, patch: AdPatch): AdView | null {
       font(patch.headingFont, existing.headingFont),
       font(patch.bodyFont, existing.bodyFont),
       effect,
+      patch.textScale === undefined
+        ? existing.textScale
+        : clampTextScale(Number(patch.textScale)),
       now(),
       id
     );

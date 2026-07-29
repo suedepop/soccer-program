@@ -89,6 +89,8 @@ function migrate(conn: Database.Database) {
       heading_font  TEXT NOT NULL DEFAULT '',
       body_font     TEXT NOT NULL DEFAULT '',
       name_effect   TEXT NOT NULL DEFAULT '',
+      -- Manual nudge on the body type size; the fitter still caps it.
+      text_scale    REAL NOT NULL DEFAULT 1,
       status        TEXT NOT NULL DEFAULT 'draft',
       price_cents   INTEGER NOT NULL DEFAULT 0,
       admin_notes   TEXT NOT NULL DEFAULT '',
@@ -120,6 +122,7 @@ function migrate(conn: Database.Database) {
   addColumn(conn, 'ads', 'body_font', "TEXT NOT NULL DEFAULT ''");
   addColumn(conn, 'ads', 'name_effect', "TEXT NOT NULL DEFAULT ''");
   addColumn(conn, 'ad_photos', 'zoom', 'REAL NOT NULL DEFAULT 1');
+  addColumn(conn, 'ads', 'text_scale', 'REAL NOT NULL DEFAULT 1');
 }
 
 /** SQLite has no ADD COLUMN IF NOT EXISTS, so check the table first. */

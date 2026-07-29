@@ -30,6 +30,8 @@ export interface AdView {
   bodyFont: string;
   /** Effect id from src/lib/effects.ts. Empty means none. */
   nameEffect: string;
+  /** Manual nudge on the message and "from" size. 1 leaves the fitter alone. */
+  textScale: number;
   status: AdStatus;
   priceCents: number;
   adminNotes: string;

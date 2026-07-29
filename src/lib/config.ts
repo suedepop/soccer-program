@@ -83,6 +83,17 @@ export const MAX_LIBRARY_PHOTOS = 100;
 export const MIN_PHOTO_ZOOM = 1;
 export const MAX_PHOTO_ZOOM = 4;
 
+/**
+ * Manual nudge on the message and "from" type size, on top of the automatic
+ * fitting. 1 is whatever the fitter chose.
+ *
+ * It is a *request*, not an override: the fitter still refuses to overflow the
+ * box, so asking for more than fits simply gets you the largest that does.
+ */
+export const MIN_TEXT_SCALE = 0.7;
+export const MAX_TEXT_SCALE = 1.4;
+export const TEXT_SCALE_STEP = 0.05;
+
 /** Print resolution the printer wants. Drives every "photo too small" warning. */
 export const PRINT_DPI = 300;
 

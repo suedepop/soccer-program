@@ -161,6 +161,32 @@ that reads "Sharp — 448 DPI" untouched will say "Too small — 187 DPI at this
 zoom" once cropped to 2.4x. Without that, a heavily cropped photo would keep
 claiming to be fine right up until it came back blurry from the printer.
 
+### Text size, and orphaned words
+
+The **Text size** control in the Wording tab nudges the message and the "from"
+line between `MIN_TEXT_SCALE` and `MAX_TEXT_SCALE`.
+
+It is a *request*, not an override. The fitter still refuses to overflow the
+box, so asking for more than fits simply returns the largest size that does —
+which is what keeps it inside the frame. The buttons run the real fitter at the
+next step up and down, so a step the box would refuse is **disabled with an
+explanation** rather than being a control that silently does nothing.
+
+Ads also never end a paragraph on a lone word. `preventOrphans` ties the last
+two words together with a non-breaking space at render time, so the stored text
+keeps ordinary spaces and the editor's textarea behaves normally. This does not
+change the line count — it pulls the previous word down rather than pushing
+anything onto a new line — so the type size is unaffected.
+
+The glue limit is a share of the line, not a fixed character count: 22
+characters is comfortable on a full-page line and wider than a quarter-page one,
+and an over-long unbreakable run would rather overflow its box than wrap.
+
+`node scripts/text-fit.mjs` renders 135 combinations of size, font, message
+length and text scale, then measures the rendered text against its box and
+counts the words on the last line. It found a pre-existing overflow bug at
+scale 1 that the estimate had been hiding.
+
 ### Positioning a photo in its slot
 
 Drag the crop preview to nudge, or use the arrow keys; a slider zooms from 1x to
@@ -338,8 +364,15 @@ Two consequences worth knowing:
   browser and in Chrome. Short messages grow into their box (up to 1.35× base),
   long ones shrink (down to 0.5×).
 
-  This is why the constants in `src/lib/fonts.ts` have to be measured rather than
-  guessed — Bebas Neue fits roughly 47% more characters per line than Montserrat,
+  The line estimate subtracts one average word from each line's character
+  capacity. Text wraps at spaces, so a line stops as soon as the next word will
+  not fit; dividing by the raw character limit under-counts lines, and a long
+  message could be sized to "fit" and then spill out of its box. One average
+  word is what matched real rendered line counts — half a word was measurably
+  too optimistic on narrow columns.
+
+  This is also why the constants in `src/lib/fonts.ts` have to be measured rather
+  than guessed — Bebas Neue fits roughly 47% more characters per line than Montserrat,
   and a wrong constant means text that overflows its box or floats in the middle
   of it. `boldRatio` does the same job for heavily bolded copy, and `headingGlyph`
   for names, which are drawn at the family's heavy weight and run materially
@@ -361,6 +394,7 @@ limits.
 | ------------------------ | ----------------------------------------------------------------------- |
 | Prices, deadline, copy   | `src/lib/config.ts`                                                     |
 | Sample text on a new ad  | `DEFAULT_AD_TEXT` in `src/lib/config.ts`                                |
+| Text size range          | `MIN_TEXT_SCALE` / `MAX_TEXT_SCALE` in `src/lib/config.ts`              |
 | Photo library size       | `MAX_LIBRARY_PHOTOS` in `src/lib/config.ts`                             |
 | Backgrounds              | `src/lib/backgrounds.ts` — add an object to `BACKGROUNDS`               |
 | Fonts                    | `scripts/fetch-fonts.mjs` + `src/lib/fonts.ts`, then re-run both scripts |
@@ -406,6 +440,7 @@ node scripts/measure-fonts.mjs                          # print avgGlyph / boldR
 # With the server running:
 node scripts/smoke.mjs                                  # end-to-end check (59 assertions)
 node scripts/name-fit.mjs <admin-email> <password>      # 459 layout x font x name combinations
+node scripts/text-fit.mjs <admin-email> <password>      # 135 message fit + orphan combinations
 node scripts/contact-sheet.mjs <admin-email> <password> # tile every layout, background, font, effect
 ```
 

@@ -9,6 +9,7 @@ import NameEffectPicker from '@/components/NameEffectPicker';
 import PhotoAdjuster from '@/components/PhotoAdjuster';
 import PhotoPicker from '@/components/PhotoPicker';
 import RichTextField from '@/components/RichTextField';
+import TextSizeControl from '@/components/TextSizeControl';
 import { useFitScale } from '@/components/useFitScale';
 import { usePhotoLibrary } from '@/components/usePhotoLibrary';
 import { BACKGROUNDS, getBackground } from '@/lib/backgrounds';
@@ -412,6 +413,8 @@ export default function AdEditor({ initialAd }: { initialAd: AdView }) {
               sampleValue={DEFAULT_AD_TEXT.attribution}
               onChange={(attribution) => queue({ attribution })}
             />
+
+            <TextSizeControl ad={ad} onChange={(textScale) => queue({ textScale })} />
 
             <div className="hint">
               Select any words and use <strong>B</strong> / <em>I</em> /{' '}
