@@ -46,10 +46,42 @@ Generate a secret with:
 node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 ```
 
+### Deploying: the two things that lose data
+
+Both failure modes look identical from the outside — "all the accounts are
+gone" — but only one of them actually loses anything.
+
+**1. `DATA_DIR` must be an absolute path on storage that survives a redeploy.**
+A relative path resolves against the *working directory*. If a systemd unit,
+Docker `WORKDIR`, or Windows service starts the process somewhere else, the app
+creates a brand-new empty database rather than finding the real one. It now says
+so on startup:
+
+```
+[db] /srv/soccer/data/program.sqlite (37 accounts)          ← found it
+[db] Created a NEW EMPTY database at /opt/app/data/...      ← wrong path
+```
+
+Check that line first whenever accounts appear to be missing.
+
+**2. `SESSION_SECRET` must stay the same across restarts.** Login cookies are
+JWTs signed with it, so a new secret rejects every existing cookie and signs
+everyone out. Nothing is lost — accounts and ads live in the database — but
+parents have to sign in again. Never generate it at boot.
+
+Locally, `.env.local` holds both, and `npm run dev` and the VS Code debugger read
+the same file. Don't set `SESSION_SECRET` in `launch.json`: env vars there win
+over `.env.local`, so the two ways of starting the app would sign each other out.
+
 ### Backing up
 
 Everything that matters is in `DATA_DIR` — the SQLite database and every uploaded
-photo. Copy that folder and you have copied the whole program.
+photo. Copy that **whole folder**.
+
+Copying `program.sqlite` on its own is not enough. The database runs in WAL mode,
+so recent writes live in the `program.sqlite-wal` file beside it until they are
+checkpointed — a freshly-used database can be a 4 KB `.sqlite` and a 200 KB
+`-wal`. Take the directory, or stop the app first, and the point is moot.
 
 ---
 

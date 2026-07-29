@@ -19,9 +19,12 @@
       "console": "integratedTerminal",
       "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
       "env": {
-        // Falls back to a dev-only secret if unset, but pinning it keeps you
-        // signed in across restarts.
-        "SESSION_SECRET": "dev-only-secret-change-me-at-least-32-characters",
+        // SESSION_SECRET deliberately NOT set here — it comes from .env.local,
+        // which `npm run dev` reads too. Setting it here would override that
+        // file and sign you out every time you switched between the terminal
+        // and the debugger: the login cookie is a JWT, and a different secret
+        // silently fails verification and looks like an empty database.
+        //
         // Headless Chrome hits this URL when rendering print PNGs and PDFs.
         "PRINT_BASE_URL": "http://127.0.0.1:3000"
       }
@@ -49,7 +52,7 @@
       "console": "integratedTerminal",
       "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
       "env": {
-        "SESSION_SECRET": "dev-only-secret-change-me-at-least-32-characters",
+        // SESSION_SECRET comes from .env.local — see the first configuration.
         "PRINT_BASE_URL": "http://127.0.0.1:3000"
       },
       "serverReadyAction": {
@@ -89,7 +92,7 @@
       "console": "integratedTerminal",
       "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
       "env": {
-        "SESSION_SECRET": "dev-only-secret-change-me-at-least-32-characters",
+        // SESSION_SECRET comes from .env.local — see the first configuration.
         "PRINT_BASE_URL": "http://127.0.0.1:3000"
       }
     },

@@ -2,6 +2,16 @@ import Database from 'better-sqlite3';
 import fs from 'node:fs';
 import path from 'node:path';
 
+/**
+ * Every account, ad, and uploaded photo lives here.
+ *
+ * A relative DATA_DIR resolves against the *working directory*, which is not
+ * always the project folder once something else is starting the process — a
+ * systemd unit, a Docker WORKDIR, a Windows service. When that happens the app
+ * happily creates a brand-new empty database somewhere else and every account
+ * appears to have vanished. Use an absolute path in production, and see the
+ * startup line logged below to confirm which file is actually open.
+ */
 export const DATA_DIR = path.resolve(process.env.DATA_DIR || './data');
 export const UPLOAD_DIR = path.join(DATA_DIR, 'uploads');
 
@@ -16,11 +26,28 @@ export function db(): Database.Database {
   if (_db) return _db;
   ensureDirs();
   const file = path.join(DATA_DIR, 'program.sqlite');
+  const isNew = !fs.existsSync(file);
+
   const conn = new Database(file);
   conn.pragma('journal_mode = WAL');
   conn.pragma('foreign_keys = ON');
   migrate(conn);
   _db = conn;
+
+  // Say out loud which database is open. Silently starting a fresh one is the
+  // single most alarming failure this app can have, so make it impossible to
+  // mistake for anything else.
+  if (isNew) {
+    console.warn(
+      `[db] Created a NEW EMPTY database at ${file}\n` +
+        `[db] If you expected existing accounts, DATA_DIR is not pointing where you think.\n` +
+        `[db] Set DATA_DIR to an absolute path on persistent storage.`
+    );
+  } else {
+    const { n } = conn.prepare('SELECT COUNT(*) AS n FROM users').get() as { n: number };
+    console.log(`[db] ${file} (${n} account${n === 1 ? '' : 's'})`);
+  }
+
   return conn;
 }
 
