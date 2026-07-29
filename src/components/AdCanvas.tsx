@@ -123,9 +123,13 @@ export default function AdCanvas({
    * character count cannot work: 22 characters is comfortable on a full-page
    * line and wider than a quarter-page one, and an over-long unbreakable run
    * would rather overflow the box than wrap.
+   *
+   * The pair only has to fit *within* a line, so 0.85 is the right order of
+   * magnitude — it leaves room for the character-width estimate being
+   * approximate without refusing to glue ordinary pairs of longish words.
    */
   const glueLimit = (boxWidthPercent: number, fontSize: number) =>
-    Math.floor(((boxWidthPercent / 100) * W) / (fontSize * bodyFont.avgGlyph) * 0.7);
+    Math.floor((((boxWidthPercent / 100) * W) / (fontSize * bodyFont.avgGlyph)) * 0.85);
 
   const messageGlue = glueLimit(layout.message.w, messageFit.fontSize);
   const attributionGlue = glueLimit(layout.attribution.w, attributionFit.fontSize);

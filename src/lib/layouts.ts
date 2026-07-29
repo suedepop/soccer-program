@@ -114,13 +114,15 @@ const HALF: Layout[] = [
     size: 'half',
     name: 'Photos Left',
     description: 'Two stacked photos on the left, message filling the right.',
+    // Photos run to x=36.2; the text column starts at 40 to keep the same
+    // gutter it had when they were narrower.
     photos: [
-      { x: 5, y: 8, w: 26, h: 40 },
-      { x: 5, y: 52, w: 26, h: 40 },
+      { x: 5, y: 8, w: 31.2, h: 40 },
+      { x: 5, y: 52, w: 31.2, h: 40 },
     ],
-    playerName: { x: 35, y: 9, w: 60, h: 15 },
-    message: { x: 35, y: 26, w: 60, h: 52 },
-    attribution: { x: 35, y: 80, w: 60, h: 11 },
+    playerName: { x: 40, y: 9, w: 55, h: 15 },
+    message: { x: 40, y: 26, w: 55, h: 52 },
+    attribution: { x: 40, y: 80, w: 55, h: 11 },
     align: 'left',
     rule: true,
   },
@@ -129,13 +131,15 @@ const HALF: Layout[] = [
     size: 'half',
     name: 'Photos Right',
     description: 'Mirror of Photos Left — message reads first.',
+    // Mirrored: photos still end at x=95, so they start further left and the
+    // text column narrows to match.
     photos: [
-      { x: 69, y: 8, w: 26, h: 40 },
-      { x: 69, y: 52, w: 26, h: 40 },
+      { x: 63.8, y: 8, w: 31.2, h: 40 },
+      { x: 63.8, y: 52, w: 31.2, h: 40 },
     ],
-    playerName: { x: 5, y: 9, w: 60, h: 15 },
-    message: { x: 5, y: 26, w: 60, h: 52 },
-    attribution: { x: 5, y: 80, w: 60, h: 11 },
+    playerName: { x: 5, y: 9, w: 55, h: 15 },
+    message: { x: 5, y: 26, w: 55, h: 52 },
+    attribution: { x: 5, y: 80, w: 55, h: 11 },
     align: 'left',
     rule: true,
   },
