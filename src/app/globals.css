@@ -555,6 +555,10 @@ table.data tr:last-child td {
   margin-top: 2px;
   line-height: 1.3;
 }
+.font-default-note {
+  color: var(--red-dark);
+  font-weight: 700;
+}
 
 .slot-list {
   display: grid;
