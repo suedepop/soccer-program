@@ -29,7 +29,7 @@ export default async function AdDetailPage({ params }: { params: Promise<{ id: s
   const soft = layout.photos
     .map((slot, i) => {
       const photo = ad.photos.find((p) => p.slot === i);
-      return photo ? { i, ...photoQuality(ad.size, slot, photo) } : null;
+      return photo ? { i, ...photoQuality(ad.size, slot, photo, photo.zoom ?? 1) } : null;
     })
     .filter((x): x is NonNullable<typeof x> => x !== null && x.quality !== 'good');
 

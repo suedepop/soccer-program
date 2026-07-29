@@ -127,7 +127,7 @@ export default async function AdminPage({
               const layout = getLayout(ad.layoutId, ad.size);
               const lowRes = layout.photos.filter((slot, i) => {
                 const p = ad.photos.find((x) => x.slot === i);
-                return p && photoQuality(ad.size, slot, p).quality !== 'good';
+                return p && photoQuality(ad.size, slot, p, p.zoom ?? 1).quality !== 'good';
               }).length;
 
               return (

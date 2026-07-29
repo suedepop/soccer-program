@@ -8,7 +8,7 @@ import {
   type AdStatus,
   type TeamId,
 } from './config';
-import { defaultLayoutId, getLayout } from './layouts';
+import { clampPan, clampZoom, defaultLayoutId, getLayout } from './layouts';
 import { DEFAULT_BACKGROUND_ID, getBackground } from './backgrounds';
 import { isNameEffectId } from './effects';
 import { isFontId } from './fonts';
@@ -42,6 +42,7 @@ interface PhotoRow {
   file_id: number;
   focal_x: number;
   focal_y: number;
+  zoom: number;
   width: number;
   height: number;
   orig_name: string;
@@ -50,7 +51,8 @@ interface PhotoRow {
 function photosFor(adId: number): PhotoRef[] {
   const rows = db()
     .prepare(
-      `SELECT p.slot, p.file_id, p.focal_x, p.focal_y, f.width, f.height, f.orig_name
+      `SELECT p.slot, p.file_id, p.focal_x, p.focal_y, p.zoom,
+              f.width, f.height, f.orig_name
          FROM ad_photos p JOIN files f ON f.id = p.file_id
         WHERE p.ad_id = ? ORDER BY p.slot`
     )
@@ -65,6 +67,7 @@ function photosFor(adId: number): PhotoRef[] {
     origName: r.orig_name,
     focalX: r.focal_x,
     focalY: r.focal_y,
+    zoom: r.zoom ?? 1,
   }));
 }
 
@@ -238,11 +241,25 @@ export function setPhoto(adId: number, slot: number, fileId: number | null) {
   db().prepare('UPDATE ads SET updated_at = ? WHERE id = ?').run(now(), adId);
 }
 
-export function setPhotoFocal(adId: number, slot: number, x: number, y: number) {
-  const clamp = (n: number) => Math.min(1, Math.max(0, Number.isFinite(n) ? n : 0.5));
+/**
+ * Stores how a photo sits in its slot.
+ *
+ * Values are clamped here as well as in the UI: pan outside 0..1 or zoom below
+ * 1 would let the image pull away from an edge and show the background through
+ * the gap, and this is the last point before it reaches the print renderer.
+ */
+export function setPhotoTransform(
+  adId: number,
+  slot: number,
+  x: number,
+  y: number,
+  zoom: number
+) {
   db()
-    .prepare('UPDATE ad_photos SET focal_x = ?, focal_y = ? WHERE ad_id = ? AND slot = ?')
-    .run(clamp(x), clamp(y), adId, slot);
+    .prepare(
+      'UPDATE ad_photos SET focal_x = ?, focal_y = ?, zoom = ? WHERE ad_id = ? AND slot = ?'
+    )
+    .run(clampPan(x), clampPan(y), clampZoom(zoom), adId, slot);
   db().prepare('UPDATE ads SET updated_at = ? WHERE id = ?').run(now(), adId);
 }
 

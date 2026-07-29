@@ -7,8 +7,11 @@ export interface PhotoRef {
   width: number;
   height: number;
   origName: string;
+  /** Pan within the slot, 0..1 on each axis. 0.5 is centred. */
   focalX: number;
   focalY: number;
+  /** 1 fills the slot exactly; larger crops in. */
+  zoom: number;
 }
 
 /** Everything the canvas needs to draw an ad. Safe to send to the client. */

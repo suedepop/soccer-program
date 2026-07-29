@@ -73,6 +73,16 @@ export const AD_SIZE_ORDER: AdSize[] = ['full', 'half', 'quarter'];
  */
 export const MAX_LIBRARY_PHOTOS = 100;
 
+/**
+ * How far a photo may be zoomed inside its slot. 1 is "fill the slot exactly";
+ * anything below that would expose the frame, so it is the hard floor.
+ *
+ * Zooming spends resolution — at 2x only half the source pixels cover the same
+ * printed inch — so `photoQuality` divides effective DPI by the zoom.
+ */
+export const MIN_PHOTO_ZOOM = 1;
+export const MAX_PHOTO_ZOOM = 4;
+
 /** Print resolution the printer wants. Drives every "photo too small" warning. */
 export const PRINT_DPI = 300;
 

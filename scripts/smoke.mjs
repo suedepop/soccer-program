@@ -443,6 +443,86 @@ capUpload.set('file', new File([capImage], 'x.jpg', { type: 'image/jpeg' }));
 const capRes = await req(`/api/ads/${capAd}/photos`, { method: 'POST', body: capUpload });
 check('cap also applies to uploads from inside an ad', capRes.status === 409, `status=${capRes.status}`);
 
+// ---------------------------------------------------------------------------
+// 19. Nudge and zoom can never expose the background
+// ---------------------------------------------------------------------------
+cookie = savedCookie;
+
+const { id: cropAd } = await json('/api/ads', 'POST', { size: 'quarter' });
+await json(`/api/ads/${cropAd}`, 'PATCH', {
+  layoutId: 'q-photo-top',
+  backgroundId: 'classic-white',
+  playerName: 'Crop Test',
+  message: 'Checking the crop stays inside its slot.',
+  attribution: 'Love, QA',
+});
+// A tall photo, so the cover fit has to crop it vertically.
+await upload(cropAd, 0, await makeImage(1200, 1800, 210), 'crop.jpg');
+
+// Out-of-range values are pulled back into range rather than rejected.
+const clamped = await json(`/api/ads/${cropAd}/photos`, 'PUT', {
+  slot: 0,
+  focalX: -4,
+  focalY: 9,
+  zoom: 0.1,
+});
+check(
+  'pan and zoom are clamped to a legal range',
+  clamped.photo.focalX === 0 && clamped.photo.focalY === 1 && clamped.photo.zoom === 1,
+  `x=${clamped.photo.focalX} y=${clamped.photo.focalY} zoom=${clamped.photo.zoom}`
+);
+
+const capped = await json(`/api/ads/${cropAd}/photos`, 'PUT', { slot: 0, zoom: 99 });
+check('zoom is capped at the maximum', capped.photo.zoom === 4, `zoom=${capped.photo.zoom}`);
+
+// Now prove it in the actual print render. q-photo-top puts the photo at
+// x8 y7 w84 h44 of a 1275x1650 quarter page. The page is white and the photo
+// is solid (210,60,70), so a single near-white pixel inside the slot means the
+// image pulled away from an edge and let the background through.
+const SLOT = { x: 0.08, y: 0.07, w: 0.84, h: 0.44 };
+const PAGE = { w: 1275, h: 1650 };
+const INSET = 14; // clear of the photo's own drawn border
+const region = {
+  left: Math.round(SLOT.x * PAGE.w) + INSET,
+  top: Math.round(SLOT.y * PAGE.h) + INSET,
+  width: Math.round(SLOT.w * PAGE.w) - INSET * 2,
+  height: Math.round(SLOT.h * PAGE.h) - INSET * 2,
+};
+
+const extremes = [
+  [0, 0, 1],
+  [1, 1, 1],
+  [0, 1, 1],
+  [1, 0, 1],
+  [0, 0, 4],
+  [1, 1, 4],
+  [0.5, 0.5, 4],
+  [0.5, 0.5, 2.37],
+];
+
+let worstGap = 0;
+const leaks = [];
+for (const [focalX, focalY, zoom] of extremes) {
+  await json(`/api/ads/${cropAd}/photos`, 'PUT', { slot: 0, focalX, focalY, zoom });
+  const res = await req(`/api/admin/ads/${cropAd}/png`);
+  if (!res.ok) throw new Error(`crop render failed: ${res.status}`);
+  const png = Buffer.from(await res.arrayBuffer());
+
+  const { data, info } = await sharp(png).extract(region).raw().toBuffer({ resolveWithObject: true });
+  let white = 0;
+  for (let i = 0; i < data.length; i += info.channels) {
+    if (data[i] > 245 && data[i + 1] > 245 && data[i + 2] > 245) white++;
+  }
+  worstGap = Math.max(worstGap, white);
+  if (white > 0) leaks.push(`${focalX}/${focalY}@${zoom}x → ${white}px`);
+}
+
+check(
+  'photo covers its slot at every extreme of pan and zoom',
+  leaks.length === 0,
+  leaks.length ? leaks.join(', ') : `${extremes.length} combinations, 0 background pixels`
+);
+
 const failed = results.filter((r) => !r.ok);
 console.log(`\n${results.length - failed.length}/${results.length} checks passed`);
 if (failed.length) process.exit(1);

@@ -1,5 +1,5 @@
 import { requireUser } from '@/lib/auth';
-import { getAd, setPhoto, setPhotoFocal } from '@/lib/ads';
+import { getAd, setPhoto, setPhotoTransform } from '@/lib/ads';
 import { getLayout } from '@/lib/layouts';
 import { MAX_LIBRARY_PHOTOS } from '@/lib/config';
 import { countPhotos, getFileRow, storeUpload, UploadError } from '@/lib/files';
@@ -81,7 +81,7 @@ export const POST = handler(async (req: Request, ctx: Ctx) => {
   }
 });
 
-/** Reposition an existing photo inside its slot (object-position). */
+/** Nudge and zoom an existing photo inside its slot. */
 export const PUT = handler(async (req: Request, ctx: Ctx) => {
   const user = await requireUser();
   const { id } = await ctx.params;
@@ -92,8 +92,22 @@ export const PUT = handler(async (req: Request, ctx: Ctx) => {
   const body = (await req.json()) as Record<string, unknown>;
   const slot = Number(body.slot);
   if (!Number.isInteger(slot)) return fail('Which photo slot?');
-  setPhotoFocal(ad.id, slot, Number(body.focalX), Number(body.focalY));
-  return ok({ ok: true });
+
+  const existing = ad.photos.find((p) => p.slot === slot);
+  if (!existing) return fail('There is no photo in that slot.', 404);
+
+  // Values are clamped in setPhotoTransform, so anything out of range is
+  // pulled back in rather than rejected.
+  setPhotoTransform(
+    ad.id,
+    slot,
+    body.focalX === undefined ? existing.focalX : Number(body.focalX),
+    body.focalY === undefined ? existing.focalY : Number(body.focalY),
+    body.zoom === undefined ? existing.zoom : Number(body.zoom)
+  );
+
+  const updated = getAd(ad.id)?.photos.find((p) => p.slot === slot);
+  return ok({ photo: updated });
 });
 
 export const DELETE = handler(async (req: Request, ctx: Ctx) => {

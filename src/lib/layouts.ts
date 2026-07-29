@@ -1,4 +1,10 @@
-import { AD_SIZES, PRINT_DPI, type AdSize } from './config';
+import {
+  AD_SIZES,
+  MAX_PHOTO_ZOOM,
+  MIN_PHOTO_ZOOM,
+  PRINT_DPI,
+  type AdSize,
+} from './config';
 
 /** All geometry is a percentage of the ad's own trim box. */
 export interface Box {
@@ -335,19 +341,86 @@ export function requiredPixels(size: AdSize, slot: Box): { w: number; h: number 
   };
 }
 
+export interface PhotoPlacement {
+  /** Drawn size of the image, in the same units as slotW/slotH. */
+  drawW: number;
+  drawH: number;
+  /** Offset of the image relative to the slot's top-left. Never positive. */
+  left: number;
+  top: number;
+}
+
+export function clampZoom(zoom: number): number {
+  if (!Number.isFinite(zoom)) return MIN_PHOTO_ZOOM;
+  return Math.min(MAX_PHOTO_ZOOM, Math.max(MIN_PHOTO_ZOOM, zoom));
+}
+
+export function clampPan(value: number): number {
+  if (!Number.isFinite(value)) return 0.5;
+  return Math.min(1, Math.max(0, value));
+}
+
+/**
+ * Works out where to draw a photo inside its slot.
+ *
+ * The image is first scaled to *cover* the slot, then multiplied by the zoom.
+ * Because the cover scale already makes it at least as large as the slot and
+ * zoom is clamped to >= 1, the drawn image is never smaller than the slot on
+ * either axis — so `left`/`top` are always <= 0 and the overhang is always >= 0.
+ * Panning only ever redistributes that overhang, which is what makes it
+ * impossible to nudge the picture out of frame and expose the background.
+ */
+export function placePhoto(
+  slotW: number,
+  slotH: number,
+  imgW: number,
+  imgH: number,
+  focalX: number,
+  focalY: number,
+  zoom: number
+): PhotoPlacement {
+  // A missing or unreadable image would divide by zero; fall back to the slot.
+  if (!(imgW > 0) || !(imgH > 0)) {
+    return { drawW: slotW, drawH: slotH, left: 0, top: 0 };
+  }
+
+  const cover = Math.max(slotW / imgW, slotH / imgH);
+  const scale = cover * clampZoom(zoom);
+  const drawW = imgW * scale;
+  const drawH = imgH * scale;
+
+  // Rounding can leave the drawn size a hair under the slot; never let the
+  // overhang go negative or a sliver of background would show through.
+  const overhangX = Math.max(0, drawW - slotW);
+  const overhangY = Math.max(0, drawH - slotH);
+
+  return {
+    drawW,
+    drawH,
+    left: -overhangX * clampPan(focalX),
+    top: -overhangY * clampPan(focalY),
+  };
+}
+
 export type PhotoQuality = 'good' | 'fair' | 'low';
 
 /**
  * A photo is scaled to *cover* its slot, so the binding constraint is whichever
  * axis has to stretch further. `fair` is the "it will print, but softly" band.
+ *
+ * Zoom spends resolution: at 2x, half as many source pixels cover the same
+ * printed inch. Ignoring it would let a heavily cropped photo keep claiming to
+ * be sharp right up until it came back blurry from the printer.
  */
 export function photoQuality(
   size: AdSize,
   slot: Box,
-  photo: { width: number; height: number }
+  photo: { width: number; height: number },
+  zoom = 1
 ): { quality: PhotoQuality; effectiveDpi: number; required: { w: number; h: number } } {
   const required = requiredPixels(size, slot);
-  const ratio = Math.min(photo.width / required.w, photo.height / required.h);
+  const ratio =
+    Math.min(photo.width / required.w, photo.height / required.h) / clampZoom(zoom);
   const effectiveDpi = Math.round(PRINT_DPI * ratio);
   const quality: PhotoQuality = ratio >= 0.99 ? 'good' : ratio >= 0.66 ? 'fair' : 'low';
   return { quality, effectiveDpi, required };

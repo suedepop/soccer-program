@@ -95,7 +95,7 @@ checkpointed — a freshly-used database can be a 4 KB `.sqlite` and a 200 KB
      the player's name and one for the message, and an effect for the name
      (shadow, glow, outline).
    - **Photos** — choose from the library per slot, with a resolution check and a
-     9-point crop control.
+     drag-to-nudge / zoom crop control.
    - **Wording** — player name, message, and attribution, each with bold / italic /
      underline. Everything autosaves.
 
@@ -154,6 +154,33 @@ The same check runs inside the library picker, so each photo is graded for the
 slot being filled rather than in the abstract — an image that is plenty for a
 quarter-page inset can be far too small for a full-bleed hero, and a single
 library-wide verdict would mislead.
+
+**Zoom is part of that sum.** At 2x, half as many source pixels cover the same
+printed inch, so `photoQuality` divides the effective DPI by the zoom. A photo
+that reads "Sharp — 448 DPI" untouched will say "Too small — 187 DPI at this
+zoom" once cropped to 2.4x. Without that, a heavily cropped photo would keep
+claiming to be fine right up until it came back blurry from the printer.
+
+### Positioning a photo in its slot
+
+Drag the crop preview to nudge, or use the arrow keys; a slider zooms from 1x to
+`MAX_PHOTO_ZOOM`. The preview is drawn at the slot's true aspect ratio using the
+same `placePhoto` maths as the print renderer, so it is not an approximation of
+the crop — it *is* the crop.
+
+**The picture cannot be pushed out of frame.** That is a property of the model
+rather than a rule enforced on top of it:
+
+- Pan is stored as 0..1 of the *available overhang*, not as pixels. 0 pins one
+  edge flush, 1 pins the opposite edge, and everything between redistributes the
+  same overhang. There is no value that means "past the edge".
+- Zoom is floored at 1, which is exactly the cover fit — so the drawn image is
+  never smaller than its slot on either axis, and the overhang is never negative.
+
+Both are clamped in the UI and again in `setPhotoTransform`, the last stop before
+the print renderer. `scripts/smoke.mjs` renders eight extremes of pan and zoom at
+300 DPI and counts background-coloured pixels inside the slot; the expected
+answer is zero.
 
 ### Fonts
 
@@ -352,7 +379,7 @@ node scripts/fetch-fonts.mjs                            # download woff2 + write
 node scripts/measure-fonts.mjs                          # print avgGlyph / boldRatio
 
 # With the server running:
-node scripts/smoke.mjs                                  # end-to-end check (50 assertions)
+node scripts/smoke.mjs                                  # end-to-end check (53 assertions)
 node scripts/name-fit.mjs <admin-email> <password>      # 459 layout x font x name combinations
 node scripts/contact-sheet.mjs <admin-email> <password> # tile every layout, background, font, effect
 ```

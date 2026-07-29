@@ -104,8 +104,13 @@ function migrate(conn: Database.Database) {
       ad_id      INTEGER NOT NULL REFERENCES ads(id) ON DELETE CASCADE,
       slot       INTEGER NOT NULL,
       file_id    INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
+      -- Pan within the slot, 0..1. 0.5 is centred; 0 and 1 pin the opposite
+      -- edges. Same meaning as an object-position percentage under
+      -- object-fit: cover, which is what these used to be.
       focal_x    REAL NOT NULL DEFAULT 0.5,
       focal_y    REAL NOT NULL DEFAULT 0.5,
+      -- 1 fills the slot exactly. Larger crops in.
+      zoom       REAL NOT NULL DEFAULT 1,
       PRIMARY KEY (ad_id, slot)
     );
   `);
@@ -114,6 +119,7 @@ function migrate(conn: Database.Database) {
   addColumn(conn, 'ads', 'heading_font', "TEXT NOT NULL DEFAULT ''");
   addColumn(conn, 'ads', 'body_font', "TEXT NOT NULL DEFAULT ''");
   addColumn(conn, 'ads', 'name_effect', "TEXT NOT NULL DEFAULT ''");
+  addColumn(conn, 'ad_photos', 'zoom', 'REAL NOT NULL DEFAULT 1');
 }
 
 /** SQLite has no ADD COLUMN IF NOT EXISTS, so check the table first. */

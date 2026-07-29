@@ -3,7 +3,7 @@ import { AD_SIZES, CSS_DPI } from '@/lib/config';
 import { getBackground } from '@/lib/backgrounds';
 import { getNameEffect } from '@/lib/effects';
 import { resolveFont, type AdFont } from '@/lib/fonts';
-import { getLayout, TYPE_BASE, type Box, type PhotoSlot } from '@/lib/layouts';
+import { getLayout, placePhoto, TYPE_BASE, type Box, type PhotoSlot } from '@/lib/layouts';
 import { fitBodyText, fitHeading } from '@/lib/fit';
 import { boldFraction, stripMarkup } from '@/lib/richtext';
 import RichText from '@/components/RichText';
@@ -187,18 +187,36 @@ export default function AdCanvas({
               }}
             >
               {photo ? (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img
-                  src={photo.url}
-                  alt=""
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                    objectPosition: `${photo.focalX * 100}% ${photo.focalY * 100}%`,
-                    display: 'block',
-                  }}
-                />
+                (() => {
+                  // Absolute placement rather than object-fit, because zoom
+                  // needs an explicit drawn size. placePhoto guarantees the
+                  // image still covers the slot at every pan and zoom.
+                  const place = placePhoto(
+                    (slot.w / 100) * W,
+                    (slot.h / 100) * H,
+                    photo.width,
+                    photo.height,
+                    photo.focalX,
+                    photo.focalY,
+                    photo.zoom ?? 1
+                  );
+                  return (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={photo.url}
+                      alt=""
+                      style={{
+                        position: 'absolute',
+                        width: place.drawW,
+                        height: place.drawH,
+                        left: place.left,
+                        top: place.top,
+                        maxWidth: 'none',
+                        display: 'block',
+                      }}
+                    />
+                  );
+                })()
               ) : showEmptySlots ? (
                 <span
                   style={{

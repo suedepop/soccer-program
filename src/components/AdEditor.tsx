@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import AdCanvas from '@/components/AdCanvas';
 import FontPicker from '@/components/FontPicker';
 import NameEffectPicker from '@/components/NameEffectPicker';
+import PhotoAdjuster from '@/components/PhotoAdjuster';
 import PhotoPicker from '@/components/PhotoPicker';
 import RichTextField from '@/components/RichTextField';
 import { useFitScale } from '@/components/useFitScale';
@@ -124,6 +125,7 @@ export default function AdEditor({ initialAd }: { initialAd: AdView }) {
         origName: p.origName ?? '',
         focalX: 0.5,
         focalY: 0.5,
+        zoom: 1,
       };
       setAd((prev) => ({
         ...prev,
@@ -143,17 +145,26 @@ export default function AdEditor({ initialAd }: { initialAd: AdView }) {
     [initialAd.id]
   );
 
-  const setFocal = useCallback(
-    async (slot: number, focalX: number, focalY: number) => {
+  /**
+   * Nudge/zoom applies to local state immediately so dragging stays smooth,
+   * and is written back on a short debounce — a drag fires dozens of updates a
+   * second and every one of them would otherwise be a round trip.
+   */
+  const adjustTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const adjust = useCallback(
+    (slot: number, next: { focalX: number; focalY: number; zoom: number }) => {
       setAd((prev) => ({
         ...prev,
-        photos: prev.photos.map((p) => (p.slot === slot ? { ...p, focalX, focalY } : p)),
+        photos: prev.photos.map((p) => (p.slot === slot ? { ...p, ...next } : p)),
       }));
-      await fetch(`/api/ads/${initialAd.id}/photos`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slot, focalX, focalY }),
-      });
+      if (adjustTimer.current) clearTimeout(adjustTimer.current);
+      adjustTimer.current = setTimeout(() => {
+        fetch(`/api/ads/${initialAd.id}/photos`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slot, ...next }),
+        }).catch(() => setError('Could not save the photo position.'));
+      }, 250);
     },
     [initialAd.id]
   );
@@ -166,7 +177,7 @@ export default function AdEditor({ initialAd }: { initialAd: AdView }) {
   const lowResCount = layout.photos.reduce((n, slot, i) => {
     const photo = photosBySlot.get(i);
     if (!photo) return n;
-    return photoQuality(ad.size, slot, photo).quality === 'low' ? n + 1 : n;
+    return photoQuality(ad.size, slot, photo, photo.zoom ?? 1).quality === 'low' ? n + 1 : n;
   }, 0);
 
   const ready =
@@ -346,7 +357,7 @@ export default function AdEditor({ initialAd }: { initialAd: AdView }) {
                 photo={photosBySlot.get(i)}
                 onChoose={() => setPickerSlot(i)}
                 onRemove={() => removePhoto(i)}
-                onFocal={(x, y) => setFocal(i, x, y)}
+                onAdjust={(next) => adjust(i, next)}
               />
             ))}
           </div>
@@ -491,7 +502,7 @@ function PhotoSlotRow({
   photo,
   onChoose,
   onRemove,
-  onFocal,
+  onAdjust,
 }: {
   index: number;
   slot: ReturnType<typeof getLayout>['photos'][number];
@@ -499,21 +510,21 @@ function PhotoSlotRow({
   photo?: PhotoRef;
   onChoose: () => void;
   onRemove: () => void;
-  onFocal: (x: number, y: number) => void;
+  onAdjust: (next: { focalX: number; focalY: number; zoom: number }) => void;
 }) {
   const required = requiredPixels(size, slot);
-  const check = photo ? photoQuality(size, slot, photo) : null;
+  // Grade at the current zoom — cropping in spends resolution.
+  const check = photo ? photoQuality(size, slot, photo, photo.zoom ?? 1) : null;
 
   return (
     <div className="slot">
       {photo ? (
         /* eslint-disable-next-line @next/next/no-img-element */
-        <img
-          className="slot-thumb"
-          src={photo.url}
-          alt=""
-          style={{ objectPosition: `${photo.focalX * 100}% ${photo.focalY * 100}%` }}
-        />
+        /* A plain "which photo is this" thumbnail. It deliberately does not
+           apply the crop — it is square and the slot usually is not, so it
+           could only ever be a near-miss. The adjuster below shows the real
+           crop at the slot's true shape. */
+        <img className="slot-thumb" src={photo.url} alt="" />
       ) : (
         <button
           type="button"
@@ -567,34 +578,8 @@ function PhotoSlotRow({
         </div>
 
         {photo && (
-          <div style={{ marginTop: 10 }}>
-            <div style={{ fontSize: 11.5, color: 'var(--muted)', marginBottom: 4 }}>
-              Crop position
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 22px)', gap: 3 }}>
-              {[0, 0.5, 1].flatMap((y) =>
-                [0, 0.5, 1].map((x) => {
-                  const active =
-                    Math.abs(photo.focalX - x) < 0.01 && Math.abs(photo.focalY - y) < 0.01;
-                  return (
-                    <button
-                      key={`${x}-${y}`}
-                      type="button"
-                      aria-label={`Focus ${x * 100}% ${y * 100}%`}
-                      onClick={() => onFocal(x, y)}
-                      style={{
-                        width: 22,
-                        height: 22,
-                        borderRadius: 5,
-                        cursor: 'pointer',
-                        border: `1px solid ${active ? 'var(--red)' : 'var(--line)'}`,
-                        background: active ? 'var(--red-soft)' : '#fff',
-                      }}
-                    />
-                  );
-                })
-              )}
-            </div>
+          <div style={{ marginTop: 12 }}>
+            <PhotoAdjuster photo={photo} size={size} slot={slot} onChange={onAdjust} />
           </div>
         )}
       </div>
