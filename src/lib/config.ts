@@ -8,15 +8,23 @@ export const SCHOOL = {
   program: 'Weir High Soccer',
   mascot: 'Red Riders',
   season: '2026 Season',
-  contactEmail: 'soccerprogram@example.com',
+  contactEmail: 'weirhighsoccer@gmail.com',
   contactName: 'Weir High Soccer Boosters',
   /** Shown on the landing page and the checkout screen. */
   deadline: 'September 12, 2026',
-  /** Payment instructions — we collect money off-site. */
+  /**
+   * Payment instructions — we collect money off-site. Rendered as a list, one
+   * entry per line, with **bold** honoured; a newline inside an entry is kept,
+   * which is what lets the mailing address sit as a block under its lead-in.
+   */
   paymentInstructions: [
     'Make checks payable to **Weir High Soccer Boosters**.',
-    'Mail or drop off at the high school office, attn: Soccer Boosters.',
-    'Venmo: **@WeirHighSoccer** — include your name and player name in the note.',
+    'Deliver in person to **Catrina Cromwell**, or mail to:\n' +
+      'Weir High Soccer\n' +
+      'c/o Catrina Cromwell\n' +
+      '100 Lexington Ct\n' +
+      'Weirton, WV 26062',
+    'Cash can be paid to **any Booster Officer**.',
   ],
 } as const;
 

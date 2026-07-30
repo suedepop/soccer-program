@@ -128,7 +128,13 @@ export default async function HomePage() {
             <strong>Payment is handled off the website.</strong>
             <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
               {SCHOOL.paymentInstructions.map((line, i) => (
-                <li key={i} dangerouslySetInnerHTML={{ __html: bold(line) }} />
+                <li
+                  key={i}
+                  // Keeps the newlines in the mailing address without turning
+                  // config.ts into markup.
+                  style={{ whiteSpace: 'pre-line' }}
+                  dangerouslySetInnerHTML={{ __html: bold(line) }}
+                />
               ))}
             </ul>
           </div>

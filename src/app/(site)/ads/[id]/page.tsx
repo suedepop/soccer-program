@@ -113,7 +113,12 @@ export default async function AdDetailPage({ params }: { params: Promise<{ id: s
               </p>
               <ul style={{ paddingLeft: 18, fontSize: 14 }}>
                 {SCHOOL.paymentInstructions.map((line, i) => (
-                  <li key={i} dangerouslySetInnerHTML={{ __html: bold(line) }} />
+                  <li
+                    key={i}
+                    // Keeps the newlines in the mailing address.
+                    style={{ whiteSpace: 'pre-line' }}
+                    dangerouslySetInnerHTML={{ __html: bold(line) }}
+                  />
                 ))}
               </ul>
               <p style={{ fontSize: 13, color: 'var(--muted)' }}>
