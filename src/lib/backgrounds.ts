@@ -1,9 +1,24 @@
 import type { CSSProperties } from 'react';
 
 /**
- * Backgrounds are pure CSS (gradients + inline SVG data URIs) on purpose:
- * headless Chrome renders them identically to the browser preview with no
- * asset loading, so the print file always matches what the parent saw.
+ * Backgrounds are CSS first (gradients + inline SVG data URIs): headless Chrome
+ * renders those identically to the browser preview with no asset loading, so
+ * the print file always matches what the parent saw.
+ *
+ * A background may also name a photographic {@link Background.image}. That one
+ * *is* a loaded asset, so it is painted as a real <img> element rather than a
+ * CSS background-image — src/lib/render.ts waits on `document.images` before
+ * screenshotting, and CSS background layers are not in that collection. An
+ * image background must still set a `base` colour that its text reads against,
+ * so a slow or missing asset degrades to a plain field instead of unreadable
+ * copy.
+ *
+ * Each photo ships as a light/dark pair with the scrim already baked into the
+ * asset — the dark master pushed down so white type reads, the light one washed
+ * out so ink type reads. That beats scrimming a full-strength master with a CSS
+ * gradient: the gradient has to be retuned per photo, it can only ever produce
+ * a dark field, and it costs a compositing pass on every ad in the book. The
+ * measured worst-case contrast for each pair is noted on its entries below.
  */
 
 export interface Background {
@@ -11,6 +26,19 @@ export interface Background {
   name: string;
   /** Base fill for the whole ad. */
   base: CSSProperties;
+  /**
+   * Photographic fill, drawn over the base and under everything else. Cropped
+   * to the ad with object-fit: cover, so one portrait master serves the two
+   * portrait formats and the landscape half page takes a band out of it. The
+   * master carries its own scrim — see the note at the top of this file.
+   */
+  image?: {
+    src: string;
+    /** Small stand-in for the editor swatch grids. Falls back to `src`. */
+    thumbSrc?: string;
+    /** object-position, when the interesting part is not the centre. */
+    position?: string;
+  };
   /** Decorative layer painted over the base, under the content. */
   overlay?: CSSProperties;
   /** Inset rule/frame drawn inside the trim edge. */
@@ -312,6 +340,153 @@ export const BACKGROUNDS: Background[] = [
       photoShadow: 'rgba(0,0,0,0.6)',
     },
     fonts: { heading: 'bebas', body: 'lora' },
+    dark: true,
+  },
+
+  // ---------------------------------------------------------------------------
+  // Photographic backgrounds. Three subjects, each as a light/dark pair off one
+  // portrait master. The light halves put ink type on a washed-out field, which
+  // no CSS background in the set does — those are all either flat light or
+  // photo-less dark. Deep red carries the headings there rather than ink: at
+  // display size it clears the 3:1 large-text bar against the pale field, while
+  // ink takes the body and the attribution, which are too small to risk it.
+  // ---------------------------------------------------------------------------
+  {
+    id: 'turf-light',
+    name: 'Turf Light',
+    tone: 'light',
+    // Mean colour of the master, so a slow asset degrades to the same field.
+    base: { background: '#A1A79D' },
+    image: {
+      src: '/fonts/backgrounds/turf-light.jpg',
+      thumbSrc: '/fonts/backgrounds/turf-light-thumb.jpg',
+    },
+    // Ink holds 6.3:1 across the whole frame and 6.4:1 in the top and bottom
+    // bands, where every layout puts the name and the attribution.
+    frame: { inset: '2.5%', border: `2px solid rgba(18,16,15,0.5)` },
+    colors: {
+      heading: DEEP_RED,
+      text: INK,
+      accent: INK,
+      photoFrame: INK,
+      photoShadow: 'rgba(0,0,0,0.25)',
+    },
+    fonts: { heading: 'oswald', body: 'nunito' },
+    dark: false,
+  },
+  {
+    id: 'turf-dark',
+    name: 'Turf Dark',
+    tone: 'dark',
+    base: { background: '#2C3922' },
+    image: {
+      src: '/fonts/backgrounds/turf-dark.jpg',
+      thumbSrc: '/fonts/backgrounds/turf-dark-thumb.jpg',
+    },
+    // White holds 7.2:1 at the brightest blades and 8.3:1 in the text bands —
+    // the baked scrim beats the CSS gradient this pair replaced, which only got
+    // the worst case to about 5:1.
+    // Reads as a pitch line rather than a picture frame.
+    frame: { inset: '2.5%', border: '2px solid rgba(255,255,255,0.85)' },
+    colors: {
+      heading: '#FFFFFF',
+      text: '#FFFFFF',
+      accent: '#FFFFFF',
+      photoFrame: '#FFFFFF',
+      photoShadow: 'rgba(0,0,0,0.5)',
+    },
+    fonts: { heading: 'oswald', body: 'montserrat' },
+    dark: true,
+  },
+  {
+    id: 'home-field-light',
+    name: 'Home Field Light',
+    tone: 'light',
+    base: { background: '#AEAEAD' },
+    // Asset is stadium-light.jpg; the id says home-field so it cannot be
+    // confused with the CSS 'stadium-lights' background above.
+    image: {
+      src: '/fonts/backgrounds/stadium-light.jpg',
+      thumbSrc: '/fonts/backgrounds/stadium-light-thumb.jpg',
+    },
+    // The palest of the three: ink holds 8.2:1, the best in the photo set.
+    frame: { inset: '3%', border: `2px solid ${DEEP_RED}` },
+    colors: {
+      heading: DEEP_RED,
+      text: INK,
+      accent: INK,
+      photoFrame: INK,
+      photoShadow: 'rgba(0,0,0,0.22)',
+    },
+    fonts: { heading: 'anton', body: 'montserrat' },
+    dark: false,
+  },
+  {
+    id: 'home-field-dark',
+    name: 'Home Field Dark',
+    tone: 'dark',
+    base: { background: '#070806' },
+    image: {
+      src: '/fonts/backgrounds/stadium-dark.jpg',
+      thumbSrc: '/fonts/backgrounds/stadium-dark-thumb.jpg',
+    },
+    // Type is in no danger here — white holds 13:1, the most headroom in the
+    // set. The risk is the other way: the median pixel is near black, so the
+    // pitch and the crowd read on screen but the treeline and the track are
+    // already at the bottom of the range and will go solid on paper. Worth a
+    // press proof before this one goes in a book.
+    frame: { inset: '3%', border: '1px solid rgba(255,249,236,0.55)' },
+    colors: {
+      heading: '#FFF9EC',
+      text: '#E6E1D8',
+      accent: '#FFC7CF',
+      photoFrame: 'rgba(255,249,236,0.9)',
+      photoShadow: 'rgba(0,0,0,0.65)',
+    },
+    fonts: { heading: 'bebas', body: 'montserrat' },
+    dark: true,
+  },
+  {
+    id: 'soccerball-light',
+    name: 'Soccer Ball Light',
+    tone: 'light',
+    base: { background: '#A8A9A6' },
+    image: {
+      src: '/fonts/backgrounds/soccerball-light.jpg',
+      thumbSrc: '/fonts/backgrounds/soccerball-light-thumb.jpg',
+    },
+    // Ink holds 6.9:1. The panel seams are the only structure in the frame, so
+    // this one takes a hairline rule and lets the photo carry the edge.
+    frame: { inset: '2.8%', border: `1px solid rgba(18,16,15,0.45)` },
+    colors: {
+      heading: DEEP_RED,
+      text: INK,
+      accent: INK,
+      photoFrame: INK,
+      photoShadow: 'rgba(0,0,0,0.25)',
+    },
+    fonts: { heading: 'montserrat', body: 'lora' },
+    dark: false,
+  },
+  {
+    id: 'soccerball-dark',
+    name: 'Soccer Ball Dark',
+    tone: 'dark',
+    base: { background: '#2D2D2C' },
+    image: {
+      src: '/fonts/backgrounds/soccerball-dark.jpg',
+      thumbSrc: '/fonts/backgrounds/soccerball-dark-thumb.jpg',
+    },
+    // White holds 12.7:1 on an almost perfectly even field.
+    frame: { inset: '2.8%', border: `2px solid ${RED}` },
+    colors: {
+      heading: '#FFFFFF',
+      text: '#F2F2F0',
+      accent: '#FFFFFF',
+      photoFrame: '#FFFFFF',
+      photoShadow: 'rgba(0,0,0,0.55)',
+    },
+    fonts: { heading: 'anton', body: 'nunito' },
     dark: true,
   },
 ];

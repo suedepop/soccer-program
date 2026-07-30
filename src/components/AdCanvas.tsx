@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { AD_SIZES, CSS_DPI } from '@/lib/config';
+import BackgroundArt from '@/components/BackgroundArt';
 import { getBackground } from '@/lib/backgrounds';
 import { getNameEffect } from '@/lib/effects';
 import { resolveFont, type AdFont } from '@/lib/fonts';
@@ -171,9 +172,7 @@ export default function AdCanvas({
           ...bg.base,
         }}
       >
-        {bg.overlay && (
-          <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', ...bg.overlay }} />
-        )}
+        <BackgroundArt bg={bg} />
         {bg.frame && (
           <div style={{ position: 'absolute', pointerEvents: 'none', ...bg.frame }} />
         )}

@@ -46,7 +46,12 @@ const LAYOUTS = {
 };
 const BACKGROUNDS = [
   'classic-white', 'red-rider', 'blackout', 'jersey-stripes', 'pitch-lines', 'corner-chevrons',
-  'halftone-fade', 'vintage-program', 'stadium-lights', 'hex-ball', 'red-black-split', 'chalk-script',
+  'halftone-fade', 'vintage-program', 'stadium-lights', 'hex-ball', 'red-black-split',
+  'chalk-script',
+  // Photographic pairs — worth proofing at print size, since the type sits on a
+  // busy field rather than a flat one.
+  'turf-light', 'turf-dark', 'home-field-light', 'home-field-dark',
+  'soccerball-light', 'soccerball-dark',
 ];
 const FONTS = [
   'montserrat',

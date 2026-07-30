@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import AdCanvas from '@/components/AdCanvas';
+import BackgroundArt from '@/components/BackgroundArt';
 import FontPicker from '@/components/FontPicker';
 import NameEffectPicker from '@/components/NameEffectPicker';
 import PhotoAdjuster from '@/components/PhotoAdjuster';
@@ -286,9 +287,7 @@ export default function AdEditor({ initialAd }: { initialAd: AdView }) {
                     title={bg.name}
                   >
                     <div className="swatch-body" style={{ position: 'relative', ...bg.base }}>
-                      {bg.overlay && (
-                        <div style={{ position: 'absolute', inset: 0, ...bg.overlay }} />
-                      )}
+                      <BackgroundArt bg={bg} thumb />
                       {bg.frame && <div style={{ position: 'absolute', ...bg.frame }} />}
                       <div
                         style={{

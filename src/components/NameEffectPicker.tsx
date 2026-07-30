@@ -1,5 +1,6 @@
 'use client';
 
+import BackgroundArt from '@/components/BackgroundArt';
 import type { Background } from '@/lib/backgrounds';
 import { NAME_EFFECTS } from '@/lib/effects';
 import type { AdFont } from '@/lib/fonts';
@@ -45,9 +46,7 @@ export default function NameEffectPicker({
               className="swatch-body"
               style={{ position: 'relative', overflow: 'hidden', ...background.base }}
             >
-              {background.overlay && (
-                <div style={{ position: 'absolute', inset: 0, ...background.overlay }} />
-              )}
+              <BackgroundArt bg={background} thumb />
               <div
                 style={{
                   position: 'absolute',
