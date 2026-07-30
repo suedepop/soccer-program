@@ -1,5 +1,6 @@
 import 'server-only';
 import bcrypt from 'bcryptjs';
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import { db } from './db';
@@ -112,4 +113,83 @@ export function findUserByEmail(email: string) {
 export function countUsers(): number {
   const row = db().prepare('SELECT COUNT(*) AS n FROM users').get() as { n: number };
   return row.n;
+}
+
+// ----------------------------------------------------------------- admin --
+
+/**
+ * The admin screen has its own credentials, separate from parent accounts. It
+ * is not linked from anywhere; a booster types /admin and signs in there.
+ *
+ * These live here, not in config.ts, and this module is server-only. config.ts
+ * is reachable from the client graph — AdCanvas imports it and is rendered from
+ * a 'use client' component — and parts of it really do ship: AD_SIZES and even
+ * SCHOOL.mascot are in .next/static after a build. Whether any *particular*
+ * export survives comes down to tree-shaking, which is not a guarantee worth
+ * betting a password on. `import 'server-only'` is: it fails the build if this
+ * module is ever pulled into a client component.
+ *
+ * Set ADMIN_USERNAME / ADMIN_PASSWORD in the deployment environment. The
+ * fallbacks below are committed to the repository — treat them as public.
+ */
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Soccer26!';
+
+/**
+ * Compares two secrets without leaking their contents through how long the
+ * comparison takes. timingSafeEqual needs equal lengths, so both sides are
+ * hashed to a fixed 32 bytes first — that also stops the length of the real
+ * password being measurable.
+ */
+function sameSecret(given: string, expected: string): boolean {
+  return timingSafeEqual(
+    createHash('sha256').update(given).digest(),
+    createHash('sha256').update(expected).digest()
+  );
+}
+
+/**
+ * The admin's user row. It exists so the rest of the app has something to hang
+ * `is_admin` on — every per-ad and per-file permission check already reads that
+ * flag off a normal session, and inventing a second kind of session would mean
+ * teaching all of them a new trick.
+ *
+ * Its stored password is random and thrown away, so this row cannot be signed
+ * into from the parents' login form. The configured password above is the only
+ * way in.
+ */
+function ensureAdminUser(): number {
+  const conn = db();
+  const existing = conn.prepare('SELECT id FROM users WHERE email = ?').get(ADMIN_USERNAME) as
+    | { id: number }
+    | undefined;
+
+  if (existing) {
+    conn.prepare('UPDATE users SET is_admin = 1 WHERE id = ?').run(existing.id);
+    return existing.id;
+  }
+
+  const unusable = bcrypt.hashSync(randomBytes(32).toString('hex'), 10);
+  const info = conn
+    .prepare(
+      "INSERT INTO users (email, password_hash, name, phone, is_admin) VALUES (?, ?, ?, '', 1)"
+    )
+    .run(ADMIN_USERNAME, unusable, 'Boosters');
+  return Number(info.lastInsertRowid);
+}
+
+/**
+ * Checks the admin credentials and, on a match, signs the browser in as the
+ * admin. Replaces any parent session that was already there, which is the
+ * behaviour a shared family computer wants anyway.
+ */
+export async function signInAdmin(username: string, password: string): Promise<boolean> {
+  // Both are checked even when the username is already wrong, so a bad username
+  // does not come back faster than a bad password.
+  const userOk = sameSecret(username.trim(), ADMIN_USERNAME);
+  const passOk = sameSecret(password, ADMIN_PASSWORD);
+  if (!userOk || !passOk) return false;
+
+  await createSession(ensureAdminUser());
+  return true;
 }

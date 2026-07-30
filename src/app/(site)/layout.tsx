@@ -22,7 +22,11 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
                 <Link href="/dashboard">My Ads</Link>
                 <Link href="/photos">Photos</Link>
                 <Link href="/ads/new">Create an Ad</Link>
-                {!!user.is_admin && <Link href="/admin">Admin</Link>}
+                {/*
+                  No Admin link on purpose — the boosters reach the admin screen
+                  by typing /admin, which asks for its own password. Keeping it
+                  out of the nav means parents never see a door they cannot open.
+                */}
                 <LogoutButton />
               </>
             ) : (

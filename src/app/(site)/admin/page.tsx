@@ -1,7 +1,7 @@
 import Link from 'next/link';
-import { notFound, redirect } from 'next/navigation';
 import AdCanvas from '@/components/AdCanvas';
 import AdminAdControls from '@/components/AdminAdControls';
+import AdminGate from '@/components/AdminGate';
 import StatusBadge from '@/components/StatusBadge';
 import { currentUser } from '@/lib/auth';
 import { listAllAds } from '@/lib/ads';
@@ -17,9 +17,11 @@ export default async function AdminPage({
 }: {
   searchParams: Promise<{ status?: string }>;
 }) {
+  // Unlinked from the nav and behind its own password: anyone can reach the URL,
+  // but without an admin session all they get is the prompt. Parents who wander
+  // in see it too, which is friendlier than the 404 this used to serve them.
   const user = await currentUser();
-  if (!user) redirect('/login');
-  if (!user.is_admin) notFound();
+  if (!user?.is_admin) return <AdminGate />;
 
   const sp = await searchParams;
   const filter = (sp.status && sp.status in AD_STATUS ? sp.status : undefined) as
