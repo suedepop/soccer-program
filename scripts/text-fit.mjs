@@ -25,7 +25,8 @@ const CASES = [
   { size: 'half', layoutId: 'h-photos-left' },
   { size: 'full', layoutId: 'f-hero' },
 ];
-const FONTS = ['montserrat', 'lora', 'oswald'];
+// Message faces only — this script sizes the message, not the name.
+const FONTS = ['montserrat', 'lora', 'special-elite'];
 const SCALES = [0.7, 1, 1.4];
 const MESSAGES = [
   'Go Red Riders!',

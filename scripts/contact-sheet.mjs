@@ -53,17 +53,18 @@ const BACKGROUNDS = [
   'turf-light', 'turf-dark', 'home-field-light', 'home-field-dark',
   'soccerball-light', 'soccerball-dark',
 ];
-const FONTS = [
-  'montserrat',
-  'oswald',
-  'anton',
-  'bebas',
-  'nunito',
-  'playfair',
-  'lora',
-  'dancing',
-  'special-elite',
+// Keep in step with NAME_FONT_IDS / MESSAGE_FONT_IDS in src/lib/fonts.ts. The
+// two are proofed separately because they are no longer the same list: setting a
+// message in Big Shoulders Inline would prove nothing about a face that is only
+// ever offered for a name.
+const NAME_FONTS = [
+  'google-sans-flex', 'roboto', 'inter', 'montserrat', 'roboto-condensed',
+  'raleway', 'rubik', 'outfit', 'smooch-sans', 'libre-baskerville',
+  'orbitron', 'noto-sans-display', 'antonio', 'strichpunkt-sans', 'doto',
+  'jaro', 'big-shoulders-stencil', 'inter-tight', 'cinzel',
+  'big-shoulders-inline', 'bebas', 'playfair', 'dancing',
 ];
+const MESSAGE_FONTS = ['montserrat', 'nunito', 'playfair', 'lora', 'dancing', 'special-elite'];
 const EFFECTS = ['', 'soft-shadow', 'hard-shadow', 'glow', 'outline', 'outline-glow'];
 const COPY = {
   playerName: 'Kylie Marsh',
@@ -121,13 +122,23 @@ const passes = [
     combos: BACKGROUNDS.map((backgroundId) => ({ layoutId: 'q-photo-top', backgroundId })),
   },
   {
-    name: 'fonts',
+    name: 'name-fonts',
     size: 'quarter',
-    combos: FONTS.map((f) => ({
+    combos: NAME_FONTS.map((f) => ({
       layoutId: 'q-photo-top',
       backgroundId: 'classic-white',
       label: f,
-      patch: { headingFont: f, bodyFont: f },
+      patch: { headingFont: f },
+    })),
+  },
+  {
+    name: 'message-fonts',
+    size: 'quarter',
+    combos: MESSAGE_FONTS.map((f) => ({
+      layoutId: 'q-photo-top',
+      backgroundId: 'classic-white',
+      label: f,
+      patch: { bodyFont: f },
     })),
   },
   // Effects on a light background and again on a dark one — they take their
@@ -149,7 +160,7 @@ const passes = [
       layoutId: 'q-photo-top',
       backgroundId: 'blackout',
       label: e || 'none',
-      patch: { nameEffect: e, headingFont: 'anton' },
+      patch: { nameEffect: e, headingFont: 'antonio' },
     })),
   },
 ];

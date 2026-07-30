@@ -116,7 +116,7 @@ export const BACKGROUNDS: Background[] = [
       photoFrame: '#FFFFFF',
       photoShadow: 'rgba(0,0,0,0.35)',
     },
-    fonts: { heading: 'oswald', body: 'montserrat' },
+    fonts: { heading: 'antonio', body: 'montserrat' },
     dark: true,
   },
   {
@@ -158,7 +158,7 @@ export const BACKGROUNDS: Background[] = [
       photoFrame: INK,
       photoShadow: 'rgba(0,0,0,0.2)',
     },
-    fonts: { heading: 'oswald', body: 'montserrat' },
+    fonts: { heading: 'roboto-condensed', body: 'montserrat' },
     dark: false,
   },
   {
@@ -181,7 +181,7 @@ export const BACKGROUNDS: Background[] = [
       photoFrame: '#FFFFFF',
       photoShadow: 'rgba(0,0,0,0.55)',
     },
-    fonts: { heading: 'oswald', body: 'nunito' },
+    fonts: { heading: 'antonio', body: 'nunito' },
     dark: true,
   },
   {
@@ -252,7 +252,7 @@ export const BACKGROUNDS: Background[] = [
       photoFrame: '#2C241C',
       photoShadow: 'rgba(70,50,30,0.25)',
     },
-    fonts: { heading: 'oswald', body: 'lora' },
+    fonts: { heading: 'cinzel', body: 'lora' },
     dark: false,
   },
   {
@@ -295,7 +295,7 @@ export const BACKGROUNDS: Background[] = [
       photoFrame: INK,
       photoShadow: 'rgba(0,0,0,0.18)',
     },
-    fonts: { heading: 'anton', body: 'nunito' },
+    fonts: { heading: 'outfit', body: 'nunito' },
     dark: false,
   },
   {
@@ -318,7 +318,7 @@ export const BACKGROUNDS: Background[] = [
       photoFrame: '#FFFFFF',
       photoShadow: 'rgba(0,0,0,0.45)',
     },
-    fonts: { heading: 'oswald', body: 'montserrat' },
+    fonts: { heading: 'big-shoulders-stencil', body: 'montserrat' },
     dark: true,
   },
   {
@@ -371,7 +371,7 @@ export const BACKGROUNDS: Background[] = [
       photoFrame: INK,
       photoShadow: 'rgba(0,0,0,0.25)',
     },
-    fonts: { heading: 'oswald', body: 'nunito' },
+    fonts: { heading: 'antonio', body: 'nunito' },
     dark: false,
   },
   {
@@ -395,7 +395,7 @@ export const BACKGROUNDS: Background[] = [
       photoFrame: '#FFFFFF',
       photoShadow: 'rgba(0,0,0,0.5)',
     },
-    fonts: { heading: 'oswald', body: 'montserrat' },
+    fonts: { heading: 'roboto-condensed', body: 'montserrat' },
     dark: true,
   },
   {
@@ -418,7 +418,7 @@ export const BACKGROUNDS: Background[] = [
       photoFrame: INK,
       photoShadow: 'rgba(0,0,0,0.22)',
     },
-    fonts: { heading: 'anton', body: 'montserrat' },
+    fonts: { heading: 'inter-tight', body: 'montserrat' },
     dark: false,
   },
   {
@@ -486,7 +486,7 @@ export const BACKGROUNDS: Background[] = [
       photoFrame: '#FFFFFF',
       photoShadow: 'rgba(0,0,0,0.55)',
     },
-    fonts: { heading: 'anton', body: 'nunito' },
+    fonts: { heading: 'outfit', body: 'nunito' },
     dark: true,
   },
 ];

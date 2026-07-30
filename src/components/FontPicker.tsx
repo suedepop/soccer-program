@@ -1,6 +1,6 @@
 'use client';
 
-import { FONTS, FONT_INHERIT, getFont, isFontId } from '@/lib/fonts';
+import { FONT_INHERIT, fontsFor, getFont, type FontRole } from '@/lib/fonts';
 
 /**
  * Font chooser. Every option renders in its own face, so the sample IS the
@@ -14,6 +14,7 @@ import { FONTS, FONT_INHERIT, getFont, isFontId } from '@/lib/fonts';
 export default function FontPicker({
   label,
   hint,
+  role,
   value,
   defaultFontId,
   sample,
@@ -21,6 +22,8 @@ export default function FontPicker({
 }: {
   label: string;
   hint?: string;
+  /** Which list to offer — names and messages want different families. */
+  role: FontRole;
   /** '' means "follow the background". */
   value: string;
   /** What the current background pairs with. */
@@ -28,15 +31,18 @@ export default function FontPicker({
   sample: string;
   onChange: (fontId: string) => void;
 }) {
-  const inheritIsListed = isFontId(defaultFontId);
+  const options = fontsFor(role);
+  // Not isFontId: a family can be in the catalogue and still be absent from
+  // *this* list, and then the inherited face does need its own tile.
+  const inheritIsListed = options.some((f) => f.id === defaultFontId);
 
   return (
     <div>
       <label>{label}</label>
       {hint && <div className="hint" style={{ marginTop: -2, marginBottom: 7 }}>{hint}</div>}
       <div className="font-grid">
-        {/* Defensive: only reachable if a background names a font not in the
-            catalogue, in which case the inherited face needs its own tile. */}
+        {/* Reachable whenever a background pairs with a family this list does
+            not offer, so the parent can still keep what the design intended. */}
         {!inheritIsListed && (
           <button
             type="button"
@@ -51,7 +57,7 @@ export default function FontPicker({
           </button>
         )}
 
-        {FONTS.map((font) => {
+        {options.map((font) => {
           const isBackgroundDefault = inheritIsListed && font.id === defaultFontId;
           // Selecting the background's own font keeps it on "inherit", so the
           // type still follows if the parent picks a different background.

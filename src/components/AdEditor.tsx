@@ -313,6 +313,7 @@ export default function AdEditor({ initialAd }: { initialAd: AdView }) {
             <FontPicker
               label="Name font"
               hint="Used for the player’s name."
+              role="name"
               value={ad.headingFont}
               defaultFontId={background.fonts.heading}
               sample={nameSample}
@@ -330,6 +331,7 @@ export default function AdEditor({ initialAd }: { initialAd: AdView }) {
             <FontPicker
               label="Message font"
               hint="Used for your message and the “from” line."
+              role="message"
               value={ad.bodyFont}
               defaultFontId={background.fonts.body}
               sample="Go Red Riders!"

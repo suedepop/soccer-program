@@ -39,7 +39,16 @@ const LAYOUTS = {
   half: ['h-photos-left', 'h-photos-right', 'h-banner', 'h-split-center', 'h-feature-inset', 'h-text-top'],
   quarter: ['q-photo-top', 'q-photo-bottom', 'q-portrait-circle', 'q-side-by-side'],
 };
-const FONTS = ['montserrat', 'oswald', 'anton', 'bebas', 'nunito', 'playfair', 'lora', 'dancing', 'special-elite'];
+// Every face offered for a name — NAME_FONT_IDS in src/lib/fonts.ts. This is
+// 23 families now rather than 9, so a full run is a few thousand renders and
+// takes a while; it is a pre-release check, not something to run per commit.
+const FONTS = [
+  'google-sans-flex', 'roboto', 'inter', 'montserrat', 'roboto-condensed',
+  'raleway', 'rubik', 'outfit', 'smooch-sans', 'libre-baskerville',
+  'orbitron', 'noto-sans-display', 'antonio', 'strichpunkt-sans', 'doto',
+  'jaro', 'big-shoulders-stencil', 'inter-tight', 'cinzel',
+  'big-shoulders-inline', 'bebas', 'playfair', 'dancing',
+];
 const NAMES = [
   'Jo Ng',
   'Kylie Marsh',

@@ -35,14 +35,41 @@ const UA =
  * at a genuinely heavy 800 instead of a browser-synthesised fake bold.
  */
 const FAMILIES = [
-  { id: 'playfair', family: 'Playfair Display', axis: 'ital,wght@0,400..900;1,400..900' },
-  { id: 'lora', family: 'Lora', axis: 'ital,wght@0,400..700;1,400..700' },
-  { id: 'montserrat', family: 'Montserrat', axis: 'ital,wght@0,400..900;1,400..900' },
-  { id: 'nunito', family: 'Nunito', axis: 'ital,wght@0,400..1000;1,400..1000' },
-  { id: 'oswald', family: 'Oswald', axis: 'wght@400..700' },
-  { id: 'anton', family: 'Anton', axis: null },
+  // Name faces. Ranges cover each family's whole wght axis, so the weight in
+  // FONTS is a real instance of one variable file rather than a separate static
+  // download per weight. Italic is only fetched for the families offered as
+  // message text, which is the only place the *emphasis* mark is used; a name
+  // set in an oblique it does not have is a cost nobody is paying for.
+  { id: 'google-sans-flex', family: 'Google Sans Flex', axis: 'wght@1..1000' },
+  { id: 'roboto', family: 'Roboto', axis: 'wght@100..900' },
+  { id: 'inter', family: 'Inter', axis: 'wght@100..900' },
+  { id: 'roboto-condensed', family: 'Roboto Condensed', axis: 'wght@100..900' },
+  { id: 'raleway', family: 'Raleway', axis: 'wght@100..900' },
+  { id: 'rubik', family: 'Rubik', axis: 'wght@300..900' },
+  { id: 'outfit', family: 'Outfit', axis: 'wght@100..900' },
+  { id: 'smooch-sans', family: 'Smooch Sans', axis: 'wght@100..900' },
+  { id: 'libre-baskerville', family: 'Libre Baskerville', axis: 'wght@400..700' },
+  { id: 'orbitron', family: 'Orbitron', axis: 'wght@400..900' },
+  { id: 'noto-sans-display', family: 'Noto Sans Display', axis: 'wght@100..900' },
+  { id: 'antonio', family: 'Antonio', axis: 'wght@100..700' },
+  { id: 'strichpunkt-sans', family: 'Strichpunkt Sans', axis: 'wght@400..900' },
+  { id: 'doto', family: 'Doto', axis: 'wght@100..900' },
+  { id: 'big-shoulders-stencil', family: 'Big Shoulders Stencil', axis: 'wght@100..900' },
+  { id: 'inter-tight', family: 'Inter Tight', axis: 'wght@100..900' },
+  { id: 'cinzel', family: 'Cinzel', axis: 'wght@400..900' },
+  { id: 'big-shoulders-inline', family: 'Big Shoulders Inline', axis: 'wght@100..900' },
+  // No wght axis at all — asking for a range 400s the request.
+  { id: 'jaro', family: 'Jaro', axis: null },
   { id: 'bebas', family: 'Bebas Neue', axis: null },
+
+  // In both pickers.
+  { id: 'montserrat', family: 'Montserrat', axis: 'ital,wght@0,100..900;1,100..900' },
+  { id: 'playfair', family: 'Playfair Display', axis: 'ital,wght@0,400..900;1,400..900' },
   { id: 'dancing', family: 'Dancing Script', axis: 'wght@400..700' },
+
+  // Message faces only.
+  { id: 'nunito', family: 'Nunito', axis: 'ital,wght@0,200..1000;1,200..1000' },
+  { id: 'lora', family: 'Lora', axis: 'ital,wght@0,400..700;1,400..700' },
   { id: 'special-elite', family: 'Special Elite', axis: null },
 ];
 
