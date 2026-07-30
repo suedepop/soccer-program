@@ -4,16 +4,26 @@
  *
  *   node scripts/name-fit.mjs <admin-email> <password>
  *
- * Names are drawn with `white-space: nowrap`, so if src/lib/fit.ts ever
- * under-shrinks one it runs straight off the trim edge and the printed ad is
- * ruined. src/lib/fonts.ts feeds that estimate per family, which means the risk
- * is real every time a font is added or a name box is resized.
+ * src/lib/fit.ts sizes names from character counts and per-family metrics in
+ * src/lib/fonts.ts — it never measures text, so the preview and the 300 DPI
+ * render agree exactly. The price is that the estimate can be wrong, and the
+ * risk is real every time a font is added or a name box is resized.
+ *
+ * Two ways it can be wrong, both checked here:
+ *   - too big for the page: the name crosses the trim edge and the ad is ruined.
+ *   - too big for its box: the name stays on the page but grows into whatever
+ *     the layout put next to it. Only reachable by layouts that set
+ *     nameMaxScale, which let the name grow to fill a tall box.
  *
  * This measures the rendered name element in the browser rather than probing
  * pixels: backgrounds paint their own frames right at the trim edge, and a
  * pixel check cannot tell that chrome apart from a name that has overflowed.
  *
- * Checks a deliberately brutal name against every layout x every font.
+ * Checks deliberately brutal names against every layout x every font. The
+ * wide-lettered ones matter as much as the long ones: avgGlyph is a mean over a
+ * prose sample, and "Mummaw" in Montserrat's 900 weight runs about 0.85 em a
+ * character against the family's 0.539, so it beats the estimate at a length
+ * the character count calls comfortable.
  */
 import puppeteer from 'puppeteer';
 
@@ -30,7 +40,14 @@ const LAYOUTS = {
   quarter: ['q-photo-top', 'q-photo-bottom', 'q-portrait-circle', 'q-side-by-side'],
 };
 const FONTS = ['montserrat', 'oswald', 'anton', 'bebas', 'nunito', 'playfair', 'lora', 'dancing', 'special-elite'];
-const NAMES = ['Jo Ng', 'Kylie Marsh', 'Alexandria Vandenberghe-Whitfield'];
+const NAMES = [
+  'Jo Ng',
+  'Kylie Marsh',
+  'Alexandria Vandenberghe-Whitfield',
+  // Wide letters, ordinary length — the case a mean-advance estimate misses.
+  'Willow Mummaw',
+  'Emma Wollowmowski',
+];
 
 let cookie = '';
 async function req(p, opts = {}) {
@@ -89,11 +106,18 @@ for (const [size, layoutIds] of Object.entries(LAYOUTS)) {
 
         const result = await page.evaluate(() => {
           const canvas = document.querySelector('[data-ad-canvas]').getBoundingClientRect();
-          const name = document.querySelector('[data-ad-name]').getBoundingClientRect();
+          const el = document.querySelector('[data-ad-name]');
+          const name = el.getBoundingClientRect();
+          // The name's own box is the element the layout positioned, which is
+          // this one's parent — see the player-name block in AdCanvas.
+          const nameBox = el.parentElement.getBoundingClientRect();
+          const style = getComputedStyle(el);
           return {
             leftSlack: name.left - canvas.left,
             rightSlack: canvas.right - name.right,
-            fontSize: parseFloat(getComputedStyle(document.querySelector('[data-ad-name]')).fontSize),
+            overflowsBox: name.height - nameBox.height,
+            lines: Math.max(1, Math.round(el.offsetHeight / parseFloat(style.lineHeight))),
+            fontSize: parseFloat(style.fontSize),
           };
         });
         await page.close();
@@ -106,6 +130,14 @@ for (const [size, layoutIds] of Object.entries(LAYOUTS)) {
         if (slack < 4) {
           failures.push(
             `${size}/${layoutId}/${headingFont} "${playerName}" slack=${slack.toFixed(1)}px @ ${result.fontSize}px`
+          );
+        }
+        // A name taller than the box the layout gave it is growing into its
+        // neighbours, even though it is still comfortably inside the trim.
+        if (result.overflowsBox > 1) {
+          failures.push(
+            `${size}/${layoutId}/${headingFont} "${playerName}" overflows its name box by ` +
+              `${result.overflowsBox.toFixed(1)}px (${result.lines} lines @ ${result.fontSize}px)`
           );
         }
       }

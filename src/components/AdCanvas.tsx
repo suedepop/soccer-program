@@ -89,7 +89,7 @@ export default function AdCanvas({
     // height the name is allowed to claim.
     (layout.playerName.h / 100) * H * (layout.rule ? 0.76 : 1),
     type.name * (layout.nameScale ?? 1) * headingFont.scale,
-    { avgGlyph: headingFont.headingGlyph }
+    { avgGlyph: headingFont.headingGlyph, maxRatio: layout.nameMaxScale ?? 1 }
   );
   const textScale = ad.textScale ?? 1;
   const messageFit = fitBodyText(

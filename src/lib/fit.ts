@@ -113,6 +113,25 @@ export function fitBodyText(
 /** Names are mostly capitals, which run wider than the measured prose sample. */
 const CAPS_ALLOWANCE = 1.15;
 
+/**
+ * Extra allowance for the single widest word in a name.
+ *
+ * avgGlyph is a mean over a prose sample, and one short word can sit a long way
+ * above it: "Cromwell" in Montserrat's 900 weight averages about 0.63 em against
+ * the family's 0.539, because m and w are far wider than the mean and there is
+ * no long tail of narrow letters to pull it back. The mean is the right estimate
+ * for a whole line of text and the wrong one for a single word.
+ *
+ * Tuned against measured renders of all nine families against the name corpus in
+ * scripts/name-fit.mjs. Leaving it at CAPS_ALLOWANCE wrapped 65 of them to a
+ * third line; 1.3 brings that to 19. It does not reach zero at any usable value
+ * — an all-wide word like "Mummaw" needs about 1.6, and by then ordinary names
+ * are being sized *smaller* than they were before they could grow at all, which
+ * defeats the point. So this covers the common wide surname, and the growth path
+ * below budgets a spare line for the rest rather than inflating this further.
+ */
+const WORD_ALLOWANCE = 1.3;
+
 /** Names longer than one line fall back to two rather than shrinking to nothing. */
 const MAX_NAME_LINES = 2;
 const NAME_LINE_HEIGHT = 1.12;
@@ -128,6 +147,11 @@ const NAME_LINE_HEIGHT = 1.12;
  * stops shrinking and runs off the trim edge instead. So the search takes the
  * largest size that fits in at most two lines, which keeps
  * "Alexandria Vandenberghe-Whitfield" legible in a quarter-page side column.
+ *
+ * `maxRatio` lets a layout with a tall name box grow the name past its nominal
+ * size instead of stranding it in the top fifth of the box. It defaults to 1 —
+ * never grow — because most name boxes are a single line's worth of height and
+ * growing into them would push the name into the message.
  */
 export function fitHeading(
   text: string,
@@ -136,16 +160,45 @@ export function fitHeading(
   baseSize: number,
   opts: FitOptions = {}
 ): Fit {
-  const { avgGlyph = DEFAULT_GLYPH, minRatio = 0.42 } = opts;
+  const { avgGlyph = DEFAULT_GLYPH, minRatio = 0.42, maxRatio = 1 } = opts;
 
-  const len = Math.max(1, text.trim().length);
+  const plain = text.trim();
+  const len = Math.max(1, plain.length);
+  /**
+   * Lines break at spaces, so the longest single word — not the average — is
+   * what decides whether a line can hold its share of the name. Dividing the
+   * character count by a character limit quietly assumes the text can break
+   * anywhere: "Ava Kimberley" is 13 characters, which looks like two 7s, but
+   * the second line has to carry all 9 of "Kimberley". That assumption is
+   * harmless at the sizes this used to search and overflows the box once the
+   * name is allowed to grow.
+   */
+  const longestWord = plain.split(/\s+/).reduce((n, w) => Math.max(n, w.length), 1);
   const min = baseSize * minRatio;
+  const requested = baseSize * maxRatio;
 
-  for (let size = baseSize; size >= min; size -= 0.5) {
-    const charsPerLine = Math.max(4, Math.floor(boxW / (size * avgGlyph * CAPS_ALLOWANCE)));
+  for (let size = requested; size >= min; size -= 0.5) {
+    const em = size * avgGlyph * CAPS_ALLOWANCE;
+    const charsPerLine = Math.max(4, Math.floor(boxW / em));
     const lines = Math.ceil(len / charsPerLine);
-    if (lines <= MAX_NAME_LINES && lines * size * NAME_LINE_HEIGHT <= boxH) {
-      return { fontSize: round(size), lineHeight: NAME_LINE_HEIGHT, capped: size < baseSize };
+    /**
+     * Growing is only safe if the box can absorb one more line than we think we
+     * need. Everything here is an estimate from character counts, and the words
+     * that beat it are exactly the wide ones — Montserrat's 900 weight draws
+     * "Mummaw" at about 0.85 em a character against the family's 0.539 mean, so
+     * a name the estimate puts on two lines can really take three. At the
+     * nominal size that costs a slightly cramped look; grown to fill a tall box
+     * it would push the name clear out of its box and into the message. Budget
+     * for the extra line instead, which also leaves the two-line case the
+     * breathing room it wants.
+     */
+    const budget = size > baseSize ? MAX_NAME_LINES + 1 : lines;
+    if (
+      lines <= MAX_NAME_LINES &&
+      longestWord * size * avgGlyph * WORD_ALLOWANCE <= boxW &&
+      budget * size * NAME_LINE_HEIGHT <= boxH
+    ) {
+      return { fontSize: round(size), lineHeight: NAME_LINE_HEIGHT, capped: size < requested };
     }
   }
 
@@ -153,6 +206,7 @@ export function fitHeading(
   const fallback = Math.min(
     min,
     (boxW * MAX_NAME_LINES) / (len * avgGlyph * CAPS_ALLOWANCE),
+    boxW / (longestWord * avgGlyph * WORD_ALLOWANCE),
     boxH / (MAX_NAME_LINES * NAME_LINE_HEIGHT)
   );
   return {

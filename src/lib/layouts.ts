@@ -36,6 +36,12 @@ export interface Layout {
   nameScale?: number;
   messageScale?: number;
   attributionScale?: number;
+  /**
+   * How far past {@link nameScale} the name may grow when its box has the room.
+   * Only for layouts whose name box is deliberately several lines tall — a name
+   * in a one-line box must stay at its nominal size or it runs into the message.
+   */
+  nameMaxScale?: number;
   /** Draw a short rule under the player name. */
   rule?: boolean;
 }
@@ -103,6 +109,15 @@ const QUARTER: Layout[] = [
     attribution: { x: 6, y: 85, w: 88, h: 8 },
     align: 'left',
     nameScale: 0.86,
+    /**
+     * The only name box in the set that is a column rather than a line: it is
+     * three lines tall so the name can stack beside the photo. At the nominal
+     * size the name filled a fifth of it and read as an afterthought next to
+     * the picture, so it grows until a two-line stack fills the column. 2 is
+     * where a first-and-last name lands on two lines in every family without
+     * the short ones ballooning.
+     */
+    nameMaxScale: 2,
   },
 ];
 
