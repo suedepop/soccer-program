@@ -489,6 +489,315 @@ export const BACKGROUNDS: Background[] = [
     fonts: { heading: 'outfit', body: 'nunito' },
     dark: true,
   },
+  // ---------------------------------------------------------------------------
+  // Textures and places. Same baked-scrim convention as the pairs above, but
+  // most of these are a single treatment rather than a light/dark pair — only
+  // the goal net comes in both. Ids match their filenames.
+  //
+  // The light ones take a deep red heading where the photo's darkest patches
+  // still clear the 3:1 large-text bar against it, and ink where they do not.
+  // Ink carries the message and the "from" line throughout, because `accent` is
+  // the attribution colour and that is small text needing the full 4.5:1.
+  // ---------------------------------------------------------------------------
+  {
+    id: 'wall-light',
+    name: 'Concrete Wall',
+    tone: 'light',
+    base: { background: '#F1EDE5' },
+    image: {
+      src: '/fonts/backgrounds/wall-light.jpg',
+      thumbSrc: '/fonts/backgrounds/wall-light-thumb.jpg',
+    },
+    // The most forgiving photo in the set: ink holds 12.7:1 and even the deep
+    // red heading gets 6.3:1, because there is no dark patch anywhere in it.
+    frame: { inset: '2.5%', border: `3px solid ${RED}` },
+    colors: {
+      heading: DEEP_RED,
+      text: INK,
+      accent: INK,
+      photoFrame: INK,
+      photoShadow: 'rgba(0,0,0,0.2)',
+    },
+    fonts: { heading: 'outfit', body: 'montserrat' },
+    dark: false,
+  },
+  {
+    id: 'wood-light',
+    name: 'Whitewashed Wood',
+    tone: 'light',
+    base: { background: '#E0DBD8' },
+    image: {
+      src: '/fonts/backgrounds/wood-light.jpg',
+      thumbSrc: '/fonts/backgrounds/wood-light-thumb.jpg',
+    },
+    // Ink 9.3:1, deep red 4.6:1.
+    frame: { inset: '3%', border: `2px solid ${INK}` },
+    colors: {
+      heading: DEEP_RED,
+      text: INK,
+      accent: INK,
+      photoFrame: INK,
+      photoShadow: 'rgba(0,0,0,0.22)',
+    },
+    fonts: { heading: 'smooch-sans', body: 'lora' },
+    dark: false,
+  },
+  {
+    id: 'canvas-light',
+    name: 'Painted Canvas',
+    // Reads pink rather than neutral, so the imposition treats it as part of
+    // the red family and keeps it away from the other reds on a sheet.
+    tone: 'red',
+    base: { background: '#C7A29F' },
+    image: {
+      src: '/fonts/backgrounds/canvas-light.jpg',
+      thumbSrc: '/fonts/backgrounds/canvas-light-thumb.jpg',
+    },
+    // Ink 6.0:1. The deep red heading is the tightest in the set at almost
+    // exactly 3:1 on the darkest patches — fine for display type, and the
+    // reason the body copy is ink rather than a second red.
+    frame: { inset: '3%', border: `2px double ${DEEP_RED}` },
+    colors: {
+      heading: DEEP_RED,
+      text: INK,
+      accent: INK,
+      photoFrame: INK,
+      photoShadow: 'rgba(80,40,40,0.25)',
+    },
+    fonts: { heading: 'cinzel', body: 'lora' },
+    dark: false,
+  },
+  {
+    id: 'blurredlights-light',
+    name: 'Bokeh Lights',
+    tone: 'light',
+    base: { background: '#CCC6C0' },
+    image: {
+      src: '/fonts/backgrounds/blurredlights-light.jpg',
+      thumbSrc: '/fonts/backgrounds/blurredlights-light-thumb.jpg',
+    },
+    // Ink 6.9:1, deep red 3.4:1. The bright discs are where white type would
+    // vanish, which is why this one is a light treatment and not a dark.
+    frame: { inset: '3%', border: '1px solid rgba(18,16,15,0.4)' },
+    colors: {
+      heading: DEEP_RED,
+      text: INK,
+      accent: INK,
+      photoFrame: INK,
+      photoShadow: 'rgba(0,0,0,0.22)',
+    },
+    fonts: { heading: 'raleway', body: 'lora' },
+    dark: false,
+  },
+  {
+    id: 'net-light',
+    name: 'Goal Net Light',
+    tone: 'light',
+    base: { background: '#C9C7C5' },
+    image: {
+      src: '/fonts/backgrounds/net-light.jpg',
+      thumbSrc: '/fonts/backgrounds/net-light-thumb.jpg',
+    },
+    // Ink 6.7:1, deep red 3.4:1.
+    frame: { inset: '2.5%', border: '2px solid rgba(18,16,15,0.5)' },
+    colors: {
+      heading: DEEP_RED,
+      text: INK,
+      accent: INK,
+      photoFrame: INK,
+      photoShadow: 'rgba(0,0,0,0.22)',
+    },
+    fonts: { heading: 'inter-tight', body: 'nunito' },
+    dark: false,
+  },
+  {
+    id: 'pitch-light',
+    name: 'Empty Pitch',
+    tone: 'light',
+    base: { background: '#BFC0B7' },
+    image: {
+      src: '/fonts/backgrounds/pitch-light.jpg',
+      thumbSrc: '/fonts/backgrounds/pitch-light-thumb.jpg',
+    },
+    /**
+     * Ink only. The grass keeps enough of its own darkness that deep red drops
+     * to 2.4:1 on it, under even the large-text bar, so the heading is ink like
+     * everything else. That makes `accent` equal to `heading`, which mutes the
+     * name effects — src/lib/effects.ts falls back to ink for its outlines and
+     * an ink ring round ink letters just reads as slightly bolder. Ink at 4.7:1
+     * is still the best any colour manages here, so legibility wins.
+     */
+    colors: {
+      heading: INK,
+      text: INK,
+      accent: INK,
+      photoFrame: INK,
+      photoShadow: 'rgba(0,0,0,0.25)',
+    },
+    fonts: { heading: 'roboto-condensed', body: 'nunito' },
+    dark: false,
+  },
+  {
+    id: 'corner-light',
+    name: 'Corner Flag',
+    tone: 'light',
+    base: { background: '#A6AE99' },
+    image: {
+      src: '/fonts/backgrounds/corner-light.jpg',
+      thumbSrc: '/fonts/backgrounds/corner-light-thumb.jpg',
+    },
+    /**
+     * The one background in the set that does not reach 4.5:1 for small text.
+     * Ink gets 4.3:1 across the frame and 4.1:1 in the bands, and nothing else
+     * does better — the darkest grass needs a text colour darker than ink to
+     * clear AA, which does not exist. Shipped because a heading and a short
+     * message are still comfortably readable at this contrast; re-export the
+     * master a stop or two lighter if you want it to pass outright.
+     */
+    colors: {
+      heading: INK,
+      text: INK,
+      accent: INK,
+      photoFrame: INK,
+      photoShadow: 'rgba(0,0,0,0.25)',
+    },
+    fonts: { heading: 'antonio', body: 'montserrat' },
+    dark: false,
+  },
+  {
+    id: 'charcoal-dark',
+    name: 'Charred Wood',
+    tone: 'dark',
+    base: { background: '#080909' },
+    image: {
+      src: '/fonts/backgrounds/charcoal-dark.jpg',
+      thumbSrc: '/fonts/backgrounds/charcoal-dark-thumb.jpg',
+    },
+    // White holds 14.9:1. Nearly black, so the grain will close up on press —
+    // it is a texture rather than a picture, so there is nothing to lose.
+    frame: { inset: '2.5%', border: `2px solid ${RED}` },
+    colors: {
+      heading: '#FFFFFF',
+      text: '#F2F2F0',
+      accent: '#FFFFFF',
+      photoFrame: '#FFFFFF',
+      photoShadow: 'rgba(0,0,0,0.6)',
+    },
+    fonts: { heading: 'big-shoulders-stencil', body: 'montserrat' },
+    dark: true,
+  },
+  {
+    id: 'corrosion-dark',
+    name: 'Corrosion',
+    tone: 'dark',
+    base: { background: '#0D0F0B' },
+    image: {
+      src: '/fonts/backgrounds/corrosion-dark.jpg',
+      thumbSrc: '/fonts/backgrounds/corrosion-dark-thumb.jpg',
+    },
+    // White holds 14.1:1.
+    frame: { inset: '2.5%', border: '1px solid rgba(255,255,255,0.5)' },
+    colors: {
+      heading: '#FFFFFF',
+      text: '#EDEBE9',
+      accent: '#FFFFFF',
+      photoFrame: '#FFFFFF',
+      photoShadow: 'rgba(0,0,0,0.6)',
+    },
+    fonts: { heading: 'big-shoulders-inline', body: 'montserrat' },
+    dark: true,
+  },
+  {
+    id: 'gravel-dark',
+    name: 'Gravel',
+    tone: 'dark',
+    base: { background: '#060808' },
+    image: {
+      src: '/fonts/backgrounds/gravel-dark.jpg',
+      thumbSrc: '/fonts/backgrounds/gravel-dark-thumb.jpg',
+    },
+    // The speckles push the brightest pixels up, so white is 7.7:1 across the
+    // whole frame — but 16.2:1 in the top and bottom bands, which is where the
+    // type actually sits.
+    frame: { inset: '2.8%', border: `2px solid ${RED}` },
+    colors: {
+      heading: '#FFFFFF',
+      text: '#F2F2F0',
+      accent: '#FFFFFF',
+      photoFrame: '#FFFFFF',
+      photoShadow: 'rgba(0,0,0,0.6)',
+    },
+    fonts: { heading: 'roboto-condensed', body: 'montserrat' },
+    dark: true,
+  },
+  {
+    id: 'stitches-dark',
+    name: 'Red Stitching',
+    tone: 'dark',
+    base: { background: '#050504' },
+    image: {
+      src: '/fonts/backgrounds/stitches-dark.jpg',
+      thumbSrc: '/fonts/backgrounds/stitches-dark-thumb.jpg',
+    },
+    // White holds 15.5:1, the most headroom of any photo here.
+    // A dashed rule, because the photo is a seam.
+    frame: { inset: '3%', border: '1px dashed rgba(255,255,255,0.55)' },
+    colors: {
+      heading: '#FFFFFF',
+      text: '#F2F2F0',
+      accent: '#FFFFFF',
+      photoFrame: '#FFFFFF',
+      photoShadow: 'rgba(0,0,0,0.6)',
+    },
+    fonts: { heading: 'strichpunkt-sans', body: 'montserrat' },
+    dark: true,
+  },
+  {
+    id: 'net-dark',
+    name: 'Goal Net Dark',
+    tone: 'dark',
+    base: { background: '#1F1E1D' },
+    image: {
+      src: '/fonts/backgrounds/net-dark.jpg',
+      thumbSrc: '/fonts/backgrounds/net-dark-thumb.jpg',
+    },
+    // White holds 11.6:1.
+    frame: { inset: '2.5%', border: '2px solid rgba(255,255,255,0.8)' },
+    colors: {
+      heading: '#FFFFFF',
+      text: '#F2F2F0',
+      accent: '#FFFFFF',
+      photoFrame: '#FFFFFF',
+      photoShadow: 'rgba(0,0,0,0.55)',
+    },
+    fonts: { heading: 'inter-tight', body: 'nunito' },
+    dark: true,
+  },
+  {
+    id: 'largestadium-dark',
+    name: 'Under the Lights',
+    tone: 'dark',
+    base: { background: '#060706' },
+    image: {
+      src: '/fonts/backgrounds/largestadium-dark.jpg',
+      thumbSrc: '/fonts/backgrounds/largestadium-dark-thumb.jpg',
+      // The floodlights sit in the upper third. A centred crop keeps them on
+      // the two portrait sizes but loses them on the landscape half page, which
+      // takes a band out of the middle — biasing upwards keeps the lights in
+      // shot at every size, and they are the whole point of the picture.
+      position: 'center 28%',
+    },
+    // White holds 10.4:1 overall and 20.6:1 in the text bands.
+    colors: {
+      heading: '#FFF9EC',
+      text: '#E6E1D8',
+      accent: '#FFC7CF',
+      photoFrame: 'rgba(255,249,236,0.9)',
+      photoShadow: 'rgba(0,0,0,0.65)',
+    },
+    fonts: { heading: 'bebas', body: 'montserrat' },
+    dark: true,
+  },
 ];
 
 export const DEFAULT_BACKGROUND_ID = 'classic-white';
