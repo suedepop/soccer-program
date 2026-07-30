@@ -46,7 +46,7 @@ const LAYOUTS = {
 };
 const BACKGROUNDS = [
   'classic-white', 'red-rider', 'blackout', 'jersey-stripes', 'pitch-lines', 'corner-chevrons',
-  'halftone-fade', 'vintage-program', 'stadium-lights', 'hex-ball', 'red-black-split',
+  'halftone-fade', 'vintage-program', 'stadium-lights', 'hex-ball',
   'chalk-script',
   // Photographic — worth proofing at print size, since the type sits on a busy
   // field rather than a flat one.
@@ -57,6 +57,12 @@ const BACKGROUNDS = [
   'charcoal-dark', 'corrosion-dark', 'gravel-dark', 'stitches-dark',
   'net-dark', 'largestadium-dark',
 ];
+// Designs that assume a portrait page — see `sizes` in src/lib/backgrounds.ts.
+// The app coerces these away on a half page, so pairing one with a half layout
+// would silently proof Classic White instead of what the label claims.
+const PORTRAIT_ONLY = new Set(['corner-chevrons']);
+const backgroundsForSize = (size) =>
+  size === 'half' ? BACKGROUNDS.filter((b) => !PORTRAIT_ONLY.has(b)) : BACKGROUNDS;
 // Keep in step with NAME_FONT_IDS / MESSAGE_FONT_IDS in src/lib/fonts.ts. The
 // two are proofed separately because they are no longer the same list: setting a
 // message in Big Shoulders Inline would prove nothing about a face that is only
@@ -115,10 +121,10 @@ const passes = [
   ...Object.entries(LAYOUTS).map(([size, layoutIds]) => ({
     name: `${size}-layouts`,
     size,
-    combos: layoutIds.map((layoutId, i) => ({
-      layoutId,
-      backgroundId: BACKGROUNDS[i % BACKGROUNDS.length],
-    })),
+    combos: layoutIds.map((layoutId, i) => {
+      const allowed = backgroundsForSize(size);
+      return { layoutId, backgroundId: allowed[i % allowed.length] };
+    }),
   })),
   {
     name: 'backgrounds',

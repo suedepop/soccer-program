@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react';
+import type { AdSize } from './config';
 
 /**
  * Backgrounds are CSS first (gradients + inline SVG data URIs): headless Chrome
@@ -64,6 +65,16 @@ export interface Background {
    * src/lib/impose.ts uses this to space them apart.
    */
   tone: 'light' | 'red' | 'dark';
+  /**
+   * The trim sizes this design is offered on. Omitted means all of them, which
+   * is the case for everything that is a gradient or a tiled texture — those
+   * look the same whatever shape the page is.
+   *
+   * Only set this for artwork that assumes a proportion. It is not a matter of
+   * taste: a design placed by percentage into a landscape page gets stretched,
+   * and the parent has no way to see that it was not meant to look like that.
+   */
+  sizes?: AdSize[];
 }
 
 const RED = '#C8102E';
@@ -188,6 +199,12 @@ export const BACKGROUNDS: Background[] = [
     id: 'corner-chevrons',
     name: 'Corner Chevrons',
     tone: 'light',
+    // The chevrons are one SVG drawn on a 400x520 portrait viewBox and painted
+    // at backgroundSize: 100% 100%, so the page's proportion stretches them.
+    // That is fine on the two portrait sizes and wrong on the landscape half
+    // page, where the corners flatten into shallow slivers instead of the
+    // 45-degree wedges they are meant to be.
+    sizes: ['full', 'quarter'],
     base: { background: '#FFFFFF' },
     overlay: {
       backgroundImage: svg(
@@ -297,29 +314,6 @@ export const BACKGROUNDS: Background[] = [
     },
     fonts: { heading: 'outfit', body: 'nunito' },
     dark: false,
-  },
-  {
-    id: 'red-black-split',
-    name: 'Red & Black Split',
-    tone: 'dark',
-    base: {
-      background: `linear-gradient(118deg, ${INK} 0%, ${INK} 46%, ${DEEP_RED} 46.5%, ${DEEP_RED} 100%)`,
-    },
-    // Both fields are dark, and the divider is faint, so white copy stays
-    // readable wherever a layout happens to put it.
-    overlay: {
-      background:
-        'linear-gradient(118deg, rgba(0,0,0,0) 45.4%, rgba(255,255,255,0.28) 45.9%, rgba(255,255,255,0.28) 46.6%, rgba(0,0,0,0) 47.1%)',
-    },
-    colors: {
-      heading: '#FFFFFF',
-      text: '#F5F2F1',
-      accent: '#FFFFFF',
-      photoFrame: '#FFFFFF',
-      photoShadow: 'rgba(0,0,0,0.45)',
-    },
-    fonts: { heading: 'big-shoulders-stencil', body: 'montserrat' },
-    dark: true,
   },
   {
     id: 'chalk-script',
@@ -489,6 +483,7 @@ export const BACKGROUNDS: Background[] = [
     fonts: { heading: 'outfit', body: 'nunito' },
     dark: true,
   },
+
   // ---------------------------------------------------------------------------
   // Textures and places. Same baked-scrim convention as the pairs above, but
   // most of these are a single treatment rather than a light/dark pair — only
@@ -802,6 +797,26 @@ export const BACKGROUNDS: Background[] = [
 
 export const DEFAULT_BACKGROUND_ID = 'classic-white';
 
-export function getBackground(id: string): Background {
-  return BACKGROUNDS.find((b) => b.id === id) ?? BACKGROUNDS[0];
+/** True when this design may be used on the given trim size. */
+export function backgroundAllowsSize(bg: Background, size: AdSize): boolean {
+  return !bg.sizes || bg.sizes.includes(size);
+}
+
+/** The designs offered for a trim size, in picker order. */
+export function backgroundsFor(size: AdSize): Background[] {
+  return BACKGROUNDS.filter((b) => backgroundAllowsSize(b, size));
+}
+
+/**
+ * Looks up a background, optionally scoped to a trim size the way getLayout is.
+ *
+ * Pass the size wherever an ad's stored id is being resolved. An id that is
+ * unknown, or known but not allowed on that size, falls back to the first design
+ * the size does allow rather than rendering artwork stretched out of shape.
+ */
+export function getBackground(id: string, size?: AdSize): Background {
+  const found = BACKGROUNDS.find((b) => b.id === id);
+  if (found && (!size || backgroundAllowsSize(found, size))) return found;
+  if (size) return backgroundsFor(size)[0] ?? BACKGROUNDS[0];
+  return found ?? BACKGROUNDS[0];
 }

@@ -13,7 +13,7 @@ import RichTextField from '@/components/RichTextField';
 import TextSizeControl from '@/components/TextSizeControl';
 import { useFitScale } from '@/components/useFitScale';
 import { usePhotoLibrary } from '@/components/usePhotoLibrary';
-import { BACKGROUNDS, getBackground } from '@/lib/backgrounds';
+import { backgroundsFor, getBackground } from '@/lib/backgrounds';
 import { getFont, resolveFont } from '@/lib/fonts';
 import { getLayout, layoutsFor, photoQuality, requiredPixels } from '@/lib/layouts';
 import { stripMarkup } from '@/lib/richtext';
@@ -278,7 +278,7 @@ export default function AdEditor({ initialAd }: { initialAd: AdView }) {
             <div>
               <label>Background</label>
               <div className="chooser chooser-3">
-                {BACKGROUNDS.map((bg) => (
+                {backgroundsFor(ad.size).map((bg) => (
                   <button
                     key={bg.id}
                     className="swatch"

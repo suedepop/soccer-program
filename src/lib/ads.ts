@@ -192,9 +192,12 @@ export function updateAd(id: number, patch: AdPatch): AdView | null {
     patch.layoutId !== undefined
       ? getLayout(patch.layoutId, existing.size).id
       : existing.layoutId;
+  // Scoped to the ad's size, the same way the layout above is: a background the
+  // size does not allow is coerced rather than stored, so the picker's filtering
+  // is not the only thing standing between a landscape ad and stretched artwork.
   const backgroundId =
     patch.backgroundId !== undefined
-      ? getBackground(patch.backgroundId).id
+      ? getBackground(patch.backgroundId, existing.size).id
       : existing.backgroundId;
 
   const clip = (s: string | undefined, max: number, fallback: string) =>

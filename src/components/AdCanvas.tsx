@@ -67,7 +67,7 @@ export default function AdCanvas({
   const H = spec.heightIn * CSS_DPI;
 
   const layout = getLayout(ad.layoutId, ad.size);
-  const bg = getBackground(ad.backgroundId);
+  const bg = getBackground(ad.backgroundId, ad.size);
   const type = TYPE_BASE[ad.size];
 
   const headingFont = resolveFont(ad.headingFont, bg.fonts.heading);
