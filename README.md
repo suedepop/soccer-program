@@ -83,21 +83,138 @@ so recent writes live in the `program.sqlite-wal` file beside it until they are
 checkpointed — a freshly-used database can be a 4 KB `.sqlite` and a 200 KB
 `-wal`. Take the directory, or stop the app first, and the point is moot.
 
+On the Azure VM, that folder is `/srv/soccer/data`, and a backup is one line:
+
+```bash
+ssh azureuser@<host> 'sudo tar czf - /srv/soccer/data' > soccer-$(date +%F).tar.gz
+```
+
+### Deploying to Azure
+
+One Ubuntu VM running two containers — the app, and Caddy in front of it for
+TLS. Push to `main` and `.github/workflows/deploy.yml` builds an image, pushes it
+to GHCR, and tells the VM to pull and restart.
+
+About **$12.91/month** at list price, all of it fixed:
+
+| | |
+| --- | --- |
+| `Standard_B2ats_v2` (2 vCPU, 1 GiB) | $6.86 |
+| 30 GB Standard SSD OS disk | $2.40 |
+| Standard static public IPv4 | $3.65 |
+| Egress | first 100 GB/month free — this site will never approach it |
+
+**Sizing is not a free choice, and the pricing pages will mislead you.** A
+subscription created recently cannot use the v1 B-series at all — `B1s`, the one
+the Azure free tier advertises, reports `NotAvailableForSubscription` in every US
+region. The v2 burstable families *are* available, but ship with a quota of
+**zero**, so a deployment fails preflight with `SkuNotAvailable` until you ask for
+some. The request is free, takes a minute, and `provision.sh` documents the exact
+call. Check both before assuming a size will work:
+
+```bash
+az vm list-skus --location <region> --size Standard_B2ats_v2 --all   # available?
+az vm list-usage --location <region> -o table | grep Basv2           # quota?
+```
+
+Two other defaults are worth overriding, and the script already does: Azure gives
+a VM a **Premium** OS disk ($5.28/month) unless told otherwise, and East US had
+no B-series capacity for this subscription at all — hence North Central US, the
+nearest region that would take one.
+
+**Why a VM and not App Service or Container Apps.** Both of those give you
+persistent storage as an Azure Files (SMB) mount, and SQLite in WAL mode on a
+network share is how databases get corrupted. This app also drives headless
+Chrome for the 300 DPI render, which wants a real container and ~1 GB of memory.
+A plain VM with an ext4 disk is the only shape where every assumption the code
+already makes is true. Moving to a managed host means moving the database to
+Postgres and the photos to Blob storage first — a bigger change than it sounds.
+
+**Set it up once:**
+
+```bash
+az login                       # whichever subscription should be billed
+az account set -s "<name or id>"
+gh auth login                  # optional; lets the script set the secrets itself
+./deploy/provision.sh
+```
+
+The script prints the subscription it is about to spend money in and waits for a
+yes — `az login` remembers whichever one you used last, which is not always the
+one you meant. It then checks the DNS label is free and that the region has
+Standard BS Family quota before creating anything, so a wrong answer costs a
+second rather than five minutes.
+
+After that it creates the resource group, an Ubuntu 24.04 VM, opens 80 and 443,
+generates a deploy key, writes `/srv/soccer/.env` with a fresh `SESSION_SECRET`, and sets
+`AZURE_VM_HOST` / `AZURE_VM_USER` / `AZURE_VM_SSH_KEY` on the GitHub repo. Every
+step is safe to re-run; the one thing it will not touch a second time is that
+`.env`, because rewriting `SESSION_SECRET` signs every parent out.
+
+Overrides, if the defaults do not suit:
+
+```bash
+DNS_LABEL=weir-high-soccer LOCATION=eastus2 VM_SIZE=Standard_B1ms ./deploy/provision.sh
+```
+
+Nothing deploys until the workflow file is on `main` — that push is what triggers
+the first build.
+
+**What the workflow does, and why in that order:**
+
+- Builds the image on GitHub, never on the VM. `next build` typechecks, so a
+  type error fails before anything is pushed, and the tag is pinned to the
+  commit — rolling back is re-running an older green deploy.
+- Copies `deploy/docker-compose.yml` and `deploy/Caddyfile` up each time, so the
+  server's configuration is whatever is in this repo rather than whatever
+  someone once edited over SSH.
+- Signs the VM in to GHCR with the workflow's own short-lived token, over stdin,
+  and signs it out afterwards. No registry password lives on the box.
+- Waits for `/api/health` — which opens the database, not just the port — before
+  reporting success, and prints the container's logs if it never answers.
+- Runs one deploy at a time (`concurrency`), because the app container is
+  stopped and replaced, and two of those overlapping would mean two writers on
+  one SQLite file.
+
+**Things worth knowing about the server:**
+
+| | |
+| --- | --- |
+| Address | `https://<label>.<region>.cloudapp.azure.com` — Azure's free DNS name, which is enough for Caddy to get a real Let's Encrypt certificate without owning a domain |
+| `DATA_DIR` | `/srv/soccer/data` on the host, `/data` in the container, owned by uid 1000 |
+| Secrets | `/srv/soccer/.env` — `SESSION_SECRET`, `SITE_ADDRESS`, `APP_IMAGE` |
+| Memory | 1 GB plus a 2 GB swapfile. Chrome is the only thing here that spikes. If the whole-program PDF ever dies mid-render, that is the ceiling: `az vm resize … --size Standard_B1ms` |
+| Patching | Unattended security upgrades, rebooting at 4am when one needs it |
+| Logs | `ssh azureuser@<host> 'cd /srv/soccer && docker compose logs -f app'` |
+
+To point a real domain at it later, change `SITE_ADDRESS` in `/srv/soccer/.env`
+to the new name, add the DNS record, and restart Caddy. It will fetch the new
+certificate itself.
+
 ---
 
 ## What parents see
 
 1. **Upload photos** to the library (`/photos`) — up to 100 per account.
 2. **Pick a size** — Full, Half, or Quarter page (`/ads/new`).
-3. **Design it** (`/ads/[id]/edit`) — a live preview beside four tabs:
-   - **Layout** — 7 full-page, 6 half-page, 4 quarter-page arrangements.
-   - **Style** — 12 backgrounds in the Red Riders' red / black / white, a font for
-     the player's name and one for the message, and an effect for the name
-     (shadow, glow, outline).
-   - **Photos** — choose from the library per slot, with a resolution check and a
-     drag-to-nudge / zoom crop control.
-   - **Wording** — player name, message, and attribution, each with bold / italic /
-     underline. Everything autosaves.
+3. **Design it** (`/ads/[id]/edit`) — five steps, in the order the decisions
+   depend on each other:
+   1. **Background** — 30-odd backgrounds in the Red Riders' red / black / white,
+      including the photographic set. This sets the palette and the default type
+      everything after it is previewed against.
+   2. **Layout** — 7 full-page, 6 half-page, 4 quarter-page arrangements. The
+      layout decides how many photos there are to place.
+   3. **Photos** — choose from the library per slot, with a resolution check and a
+      drag-to-nudge / zoom crop control.
+   4. **Copy** — player name, message, and attribution, each with bold / italic /
+      underline, plus the fonts and the name effect and its colour. The type sits
+      with the words on purpose: a font is only worth judging against the name you
+      actually typed, and by this step it is typed.
+   5. **Preview** — the finished page, the blocking checklist, and **Submit**.
+
+   Every chip in the stepper is clickable and every step saves on the way out, so
+   the order is a path rather than a gate — a parent who came back to swap one
+   photo is two taps from it.
 
    New ads start pre-filled with the sample text in `DEFAULT_AD_TEXT`
    (`src/lib/config.ts`) so the preview is a real, laid-out ad from the first
@@ -109,7 +226,13 @@ checkpointed — a freshly-used database can be a 4 KB `.sqlite` and a 200 KB
    a distracted parent could pay for a printed page of Lorem ipsum. The default
    *from* line is deliberately not blocked — "- All of us at work" is a phrase a
    business or a group of coworkers might genuinely mean.
-4. **Preview and submit** (`/ads/[id]`) — the ad becomes **Payment Due**.
+
+   The rules live in `src/lib/adChecks.ts` rather than `src/lib/ads.ts` because
+   the Preview step runs them in the browser and the submit route runs them on
+   the server. `ads.ts` is `server-only` and re-exports them; a second
+   hand-written copy in the editor would drift the day either one changed.
+4. **Submit** — from the Preview step, or from `/ads/[id]`. The ad becomes
+   **Payment Due**.
 5. **Pay the boosters** off-site. When an admin records it, the status flips to **Paid**
    and the ad locks.
 
@@ -163,7 +286,7 @@ claiming to be fine right up until it came back blurry from the printer.
 
 ### Text size, and orphaned words
 
-The **Text size** control in the Wording tab nudges the message and the "from"
+The **Text size** control in the Copy step nudges the message and the "from"
 line between `MIN_TEXT_SCALE` and `MAX_TEXT_SCALE`.
 
 It is a *request*, not an override. The fitter still refuses to overflow the
@@ -210,14 +333,22 @@ answer is zero.
 
 ### Fonts
 
-Nine families, each chosen for a different job — Montserrat, Oswald, Anton,
-Bebas Neue, Nunito, Playfair, Lora, Dancing Script, and a typewriter face. A
-parent picks one for the player's name and one for the message, or leaves either
-on *Match the background* to use that background's pairing.
+Two lists, because the jobs differ: `NAME_FONT_IDS` (23 faces, room for display
+and stencil types a name can carry) and `MESSAGE_FONT_IDS` (6, all of which stay
+readable at four-point type on a quarter page). A parent picks one for the
+player's name and one for the message, or leaves either on *Match the
+background* to use that background's pairing.
 
 Every background defaults the name to a heavy sans face, since that is what a
 name wants to be. Serif and script are still one click away for anyone who wants
 them.
+
+**The picker is one big sample over a row of name buttons**, not a grid of live
+samples. Twenty-three faces of the same three words is accurate and unreadable;
+the only sample that matters is the one being considered, and it is one tap
+away. A dot marks the face the current background pairs with, which is how
+*Match the background* stays reachable without being its own button — listing it
+separately would render the same typeface twice, and read as a bug.
 
 Weights come from real variable-font instances, not browser-synthesised fake
 bold: the fonts are fetched as weight *ranges* (`wght@400..900`), so a Montserrat
@@ -237,8 +368,15 @@ those a home, so shrinking one silently caps the name.
 
 ### Name effects
 
-Six options, applied to the name only — messages stay clean and readable: none,
-soft shadow, hard shadow, glow, outline, and outline + glow.
+Seven options, applied to the name only — messages stay clean and readable:
+none, soft shadow, hard shadow, glow, outline, thick outline (twice the
+radius), and outline + glow. Each carries a colour, which defaults to Automatic
+(see below).
+
+The picker has the same shape as the font one — a single sample of the name as
+it will print, on the real background, over plain effect and colour buttons. The
+sample has to sit on the background because that is where the effect takes its
+colours from; on a neutral card it would be a lie.
 
 Each is expressed as a multiple of the font size, so it looks the same on a
 quarter page as on a full page and survives the preview → 300 DPI scale-up.
@@ -246,10 +384,37 @@ Outlines are built from stacked `text-shadow`s rather than
 `-webkit-text-stroke`, which is painted centred over the glyph and eats into the
 letterforms.
 
-Effect colours come from the chosen background, and specifically contrast with
-the *lettering* rather than the page. Picking by background is the
-obvious-looking mistake and produces a dark ring on a dark page and a white ring
-on a white one — both invisible.
+Effect colours contrast with the *lettering* rather than with the page. Picking
+by background is the obvious-looking mistake and produces a dark ring on a dark
+page and a white ring on a white one — both invisible.
+
+On the dark backgrounds, where the lettering is white, that splits in two:
+
+- **Outlines are red.** Ink is the safe contrast against white, but it is also
+  the page's own colour, so the ring vanishes into it. Red reads against both.
+  A pale accent — the pinks two of the photographic backgrounds carry — falls
+  back to the same red, for the same reason white would not do.
+- **Shadows and glows are black.** A shadow should read as depth, not as a
+  second colour, and on the photographic backgrounds it is what stops white type
+  from dissolving into a bright patch of turf.
+
+Dark lettering on a light page is the mirror image and needs neither rule: the
+accent reads against it, and ink covers the backgrounds whose accent *is* their
+lettering colour.
+
+All of that is the **Automatic** setting, and it is the default. A parent who
+wants something else picks from `NAME_EFFECT_COLORS` — red, deep red, black,
+white, cream — stored on the ad as `name_effect_color` (`''` is Automatic). It is
+the program's own palette rather than a free colour wheel on purpose: these ads
+print side by side in one book, so a hand-mixed lime green would be somebody
+else's page as much as their own.
+
+The picked colour replaces the one colour the effect would have derived — the
+shadow, the halo, or the ring. Outline + Glow is the exception worth knowing:
+the colour goes on the ring and the glow beyond it stays dark either way,
+because that glow is depth around the ring rather than a second colour competing
+with it. The colour follows you from one effect to the next; Automatic is always
+one tap away.
 
 **The font files are self-hosted in `public/fonts/`, and that is not incidental.**
 The preview runs in the parent's browser; the 300 DPI render runs in headless
