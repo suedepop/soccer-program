@@ -1,0 +1,41 @@
+#cloud-config
+# Runs once, the first time the VM boots. Everything here is host setup that a
+# deploy should never have to repeat.
+package_update: true
+package_upgrade: true
+packages:
+  - ca-certificates
+  - curl
+
+write_files:
+  # Unattended security updates are on by default in Ubuntu; this makes the VM
+  # reboot itself at 4am when a patch needs it rather than waiting for someone
+  # to notice.
+  - path: /etc/apt/apt.conf.d/51unattended-upgrades-reboot
+    content: |
+      Unattended-Upgrade::Automatic-Reboot "true";
+      Unattended-Upgrade::Automatic-Reboot-Time "04:00";
+
+runcmd:
+  # Docker, from Docker's own repository rather than Ubuntu's older package.
+  - install -m 0755 -d /etc/apt/keyrings
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+  - chmod a+r /etc/apt/keyrings/docker.asc
+  - echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu noble stable" > /etc/apt/sources.list.d/docker.list
+  - apt-get update
+  - apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+  - usermod -aG docker azureuser
+  # Headroom for headless Chrome. The 300 DPI render is the only thing on this
+  # box with a real memory spike, and it is rare enough that swapping through
+  # it beats paying for RAM that idles 364 days a year.
+  - fallocate -l 2G /swapfile
+  - chmod 600 /swapfile
+  - mkswap /swapfile
+  - swapon /swapfile
+  - echo '/swapfile none swap sw 0 0' >> /etc/fstab
+  # DATA_DIR. Owned by uid 1000 because the container runs as node:node, and
+  # this is the one directory on the machine whose loss would actually matter.
+  - mkdir -p /srv/soccer/data
+  - chown -R 1000:1000 /srv/soccer/data
+  - chown -R azureuser:azureuser /srv/soccer
+  - touch /var/lib/cloud/instance/soccer-ready

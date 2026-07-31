@@ -1,0 +1,17 @@
+# TLS is automatic: Caddy asks Let's Encrypt for a certificate for
+# SITE_ADDRESS on first boot and renews it for as long as the container runs.
+# That works on the free *.cloudapp.azure.com name Azure hands out, so the site
+# is HTTPS from day one without owning a domain — parents type passwords into
+# this thing.
+{$SITE_ADDRESS} {
+	encode zstd gzip
+
+	reverse_proxy app:3000 {
+		# A full-page 300 DPI render can take the better part of a minute, and
+		# the whole-program PDF longer than that. The default would cut it off.
+		transport http {
+			read_timeout 300s
+			write_timeout 300s
+		}
+	}
+}

@@ -1,0 +1,51 @@
+##
+## What runs on the VM. Copied there by the deploy workflow, so this file — not
+## a hand-edited copy on the server — is the source of truth.
+##
+## Secrets and the image tag come from /srv/soccer/.env, which the workflow
+## never overwrites. See deploy/provision.sh.
+##
+name: soccer-program
+
+services:
+  app:
+    image: ${APP_IMAGE}
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # The database and uploads live on the host disk, not in the container.
+      DATA_DIR: /data
+      # Headless Chrome talks to this same container, skipping Caddy and TLS.
+      PRINT_BASE_URL: http://127.0.0.1:3000
+    volumes:
+      - /srv/soccer/data:/data
+    # Bound to loopback only: Caddy is the way in from outside. Publishing it
+    # at all is what lets the deploy script health-check before declaring
+    # victory.
+    ports:
+      - '127.0.0.1:3000:3000'
+    # One container, always. Two would mean two writers on one SQLite file.
+    deploy:
+      replicas: 1
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Where the Let's Encrypt certificate and account key live. Losing this
+      # volume means re-issuing the certificate, so leave it alone.
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - app
+
+volumes:
+  caddy-data:
+  caddy-config:

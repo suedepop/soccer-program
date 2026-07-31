@@ -1,0 +1,19 @@
+# Runtime data never belongs in an image — it lives on the server's volume.
+data/
+contact-sheets/
+
+node_modules/
+.next/
+out/
+build/
+*.tsbuildinfo
+
+.git/
+.github/
+.vscode/
+.claude/
+
+.env
+.env.local
+deploy_key
+deploy_key.pub
