@@ -133,4 +133,16 @@ jobs:
         run: ssh -i ~/.ssh/deploy_key "$VM_USER@$VM_HOST" 'docker logout ghcr.io' || true
 
       - name: Check the public address
-        run: curl -fsS --max-time 20 -o /dev/null "https://$VM_HOST/api/health"
+        run: |
+          # On a first deploy Caddy is still completing the ACME challenge when
+          # this runs, and it fetches a fresh certificate after any restart that
+          # lost its volume. Retry rather than failing a deploy that worked.
+          for i in $(seq 1 24); do
+            if curl -fsS --max-time 10 -o /dev/null "https://$VM_HOST/api/health"; then
+              echo "answering after ${i} attempt(s)"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "https://$VM_HOST/api/health never answered" >&2
+          exit 1
