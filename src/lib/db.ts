@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import fs from 'node:fs';
 import path from 'node:path';
+import { seedMissingPlaceholders } from './placeholder';
 
 /**
  * Every account, ad, and uploaded photo lives here.
@@ -32,6 +33,19 @@ export function db(): Database.Database {
   conn.pragma('journal_mode = WAL');
   conn.pragma('foreign_keys = ON');
   migrate(conn);
+
+  // Existing accounts get the placeholder on the first boot after it shipped.
+  // Never fatal: an app that will not start because of a stand-in photo would
+  // be a far worse bug than a library without one.
+  try {
+    const seeded = seedMissingPlaceholders(conn, UPLOAD_DIR);
+    if (seeded > 0) {
+      console.log(`[db] Added the media-day placeholder to ${seeded} photo librar${seeded === 1 ? 'y' : 'ies'}`);
+    }
+  } catch (err) {
+    console.warn('[db] Could not seed the placeholder photo:', err);
+  }
+
   _db = conn;
 
   // Say out loud which database is open. Silently starting a fresh one is the
@@ -60,6 +74,9 @@ function migrate(conn: Database.Database) {
       name          TEXT NOT NULL DEFAULT '',
       phone         TEXT NOT NULL DEFAULT '',
       is_admin      INTEGER NOT NULL DEFAULT 0,
+      -- Whether this account has been given the media-day placeholder photo.
+      -- Remembered so deleting it does not bring it back on the next boot.
+      placeholder_seeded INTEGER NOT NULL DEFAULT 0,
       created_at    TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
@@ -124,6 +141,7 @@ function migrate(conn: Database.Database) {
   addColumn(conn, 'ads', 'body_font', "TEXT NOT NULL DEFAULT ''");
   addColumn(conn, 'ads', 'name_effect', "TEXT NOT NULL DEFAULT ''");
   addColumn(conn, 'ads', 'name_effect_color', "TEXT NOT NULL DEFAULT ''");
+  addColumn(conn, 'users', 'placeholder_seeded', 'INTEGER NOT NULL DEFAULT 0');
   addColumn(conn, 'ad_photos', 'zoom', 'REAL NOT NULL DEFAULT 1');
   addColumn(conn, 'ads', 'text_scale', 'REAL NOT NULL DEFAULT 1');
 }

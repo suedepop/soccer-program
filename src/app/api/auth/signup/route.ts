@@ -1,6 +1,7 @@
-import { db } from '@/lib/db';
+import { db, UPLOAD_DIR } from '@/lib/db';
 import { countUsers, createSession, findUserByEmail, hashPassword, normalizeEmail } from '@/lib/auth';
 import { fail, handler, ok } from '@/lib/http';
+import { givePlaceholder } from '@/lib/placeholder';
 
 export const POST = handler(async (req: Request) => {
   const body = (await req.json()) as Record<string, unknown>;
@@ -23,6 +24,17 @@ export const POST = handler(async (req: Request) => {
     )
     .run(email, await hashPassword(password), name, phone, isAdmin);
 
-  await createSession(Number(info.lastInsertRowid));
-  return ok({ id: Number(info.lastInsertRowid), isAdmin: !!isAdmin });
+  const userId = Number(info.lastInsertRowid);
+
+  // A library with one obvious stand-in beats an empty one: a parent can lay
+  // the whole page out before media day has happened. Never let it break a
+  // signup — the account is the thing that matters here.
+  try {
+    givePlaceholder(db(), UPLOAD_DIR, userId);
+  } catch (err) {
+    console.warn('[signup] Could not add the placeholder photo:', err);
+  }
+
+  await createSession(userId);
+  return ok({ id: userId, isAdmin: !!isAdmin });
 });

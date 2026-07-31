@@ -247,6 +247,25 @@ folder in if they like — and then places the same picture into as many ads as
 they want. Ordering three ads for three siblings no longer means uploading the
 same team photo three times.
 
+**Every library starts with one photo: the media-day placeholder.** Media day is
+usually after the ad deadline, so a parent often wants to build the page before
+the picture they actually want exists. A grey portrait with a silhouette and the
+words "Media Day Photo [Placeholder]" gives them something to lay out with that
+is unmistakably a stand-in — to them while building, and to the boosters if one
+ever reaches the printer.
+
+The artwork is committed at `public/placeholder/media-day-photo.png` and redrawn
+by `scripts/make-placeholder.mjs`; nothing renders it at runtime. It is 2400×3200
+so it grades "sharp" in every slot, and the figure and words sit tight and
+central because a landscape slot crops a 3:4 portrait to its middle 40% — the
+first version lost the word "[Placeholder]" off the bottom edge.
+
+It is a real library photo, copied per account rather than shared: deleting a
+photo unlinks its file, and one parent tidying up must not blank out everybody
+else's. New accounts get it at signup; existing ones on the first boot after it
+shipped. `users.placeholder_seeded` records that it was given, so a parent who
+deletes it does not find it back after the next deploy.
+
 Two rules worth knowing:
 
 - **A photo in use cannot be deleted.** `ad_photos.file_id` cascades on delete, so
