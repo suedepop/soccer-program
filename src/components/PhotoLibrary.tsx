@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import PhotoUploadButton from '@/components/PhotoUploadButton';
+import UploadProgressBar from '@/components/UploadProgressBar';
 import { usePhotoLibrary } from '@/components/usePhotoLibrary';
 import { PRINT_DPI } from '@/lib/config';
 
@@ -29,8 +30,13 @@ export default function PhotoLibrary() {
               Upload once, then place them into as many ads as you like.
             </div>
           </div>
+          {/* Redundant on a phone, where the green button below is the whole
+              point of the screen. It earns its place beside the count on a
+              laptop, where the drop zone is the thing underneath. */}
           {!full && (
-            <PhotoUploadButton onFiles={lib.upload} busy={lib.uploading} label="Add photos" />
+            <span className="only-wide">
+              <PhotoUploadButton onFiles={lib.upload} busy={lib.uploading} label="Add photos" />
+            </span>
           )}
         </div>
 
@@ -49,6 +55,8 @@ export default function PhotoLibrary() {
             full
           />
         )}
+
+        <UploadProgressBar progress={lib.progress} />
       </div>
 
       {lib.loading ? (

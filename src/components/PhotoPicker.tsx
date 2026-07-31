@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import PhotoUploadButton from '@/components/PhotoUploadButton';
+import UploadProgressBar from '@/components/UploadProgressBar';
 import type { LibraryState } from '@/components/usePhotoLibrary';
 import { photoQuality, requiredPixels, type Box } from '@/lib/layouts';
 import type { AdSize } from '@/lib/config';
@@ -97,6 +98,10 @@ export default function PhotoPicker({
             </label>
           )}
         </div>
+
+        {/* Uploading from inside an ad is the same upload, and deserves the
+            same reassurance that something is happening. */}
+        <UploadProgressBar progress={library.progress} />
 
         {library.error && <div className="notice notice-warn">{library.error}</div>}
 

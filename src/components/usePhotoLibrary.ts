@@ -3,12 +3,23 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { LibraryPhoto } from '@/lib/files';
 
+/** How far along the current upload is, for something honest to show a parent. */
+export interface UploadProgress {
+  /** Files in this batch. */
+  files: number;
+  /** 0..1 of bytes sent, then held at 1 while the server resizes and stores. */
+  fraction: number;
+  /** True once every byte is sent and we are waiting on the server. */
+  processing: boolean;
+}
+
 export interface LibraryState {
   photos: LibraryPhoto[];
   limit: number;
   loading: boolean;
   error: string | null;
   uploading: boolean;
+  progress: UploadProgress | null;
   /** Uploads files and returns how many actually landed. */
   upload: (files: File[]) => Promise<number>;
   remove: (id: number) => Promise<boolean>;
@@ -27,6 +38,7 @@ export function usePhotoLibrary(): LibraryState {
   const [limit, setLimit] = useState(100);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState<UploadProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
@@ -49,30 +61,64 @@ export function usePhotoLibrary(): LibraryState {
   const upload = useCallback(async (files: File[]) => {
     if (!files.length) return 0;
     setUploading(true);
+    setProgress({ files: files.length, fraction: 0, processing: false });
     setError(null);
 
     const form = new FormData();
     for (const f of files) form.append('files', f);
 
-    const res = await fetch('/api/photos', { method: 'POST', body: form });
-    const json = await res.json().catch(() => ({}));
-    setUploading(false);
+    /**
+     * XMLHttpRequest rather than fetch, for the one thing it still does better:
+     * upload progress events. A parent on a phone sending eight photos over a
+     * stadium's worth of signal needs to see that something is happening, and
+     * fetch cannot tell them.
+     */
+    const { ok, json } = await new Promise<{ ok: boolean; json: Record<string, unknown> }>(
+      (resolve) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/photos');
+        xhr.upload.onprogress = (e) => {
+          if (!e.lengthComputable) return;
+          const fraction = e.loaded / e.total;
+          setProgress({ files: files.length, fraction, processing: fraction >= 1 });
+        };
+        // Every byte is sent, but the server still has to decode, resize, and
+        // write each one — which on a big batch is most of the wait.
+        xhr.upload.onload = () =>
+          setProgress({ files: files.length, fraction: 1, processing: true });
+        xhr.onload = () => {
+          let parsed: Record<string, unknown> = {};
+          try {
+            parsed = JSON.parse(xhr.responseText);
+          } catch {
+            /* handled by the ok check below */
+          }
+          resolve({ ok: xhr.status >= 200 && xhr.status < 300, json: parsed });
+        };
+        xhr.onerror = () => resolve({ ok: false, json: {} });
+        xhr.ontimeout = () => resolve({ ok: false, json: {} });
+        xhr.send(form);
+      }
+    );
 
-    if (!res.ok) {
-      setError(json.error ?? 'That upload did not work.');
+    setUploading(false);
+    setProgress(null);
+
+    if (!ok) {
+      setError((json.error as string) ?? 'That upload did not work.');
       return 0;
     }
 
-    setPhotos(json.photos ?? []);
-    setLimit(json.limit ?? 100);
+    setPhotos((json.photos as LibraryPhoto[]) ?? []);
+    setLimit((json.limit as number) ?? 100);
 
     // Partial success is normal here — report it rather than pretending.
     const notes: string[] = [];
     if (json.skipped) notes.push(`${json.skipped} skipped (library full)`);
-    if (json.errors?.length) notes.push(...json.errors);
+    if (Array.isArray(json.errors)) notes.push(...(json.errors as string[]));
     setError(notes.length ? notes.join(' · ') : null);
 
-    return json.added ?? 0;
+    return (json.added as number) ?? 0;
   }, []);
 
   const remove = useCallback(async (id: number) => {
@@ -87,5 +133,5 @@ export function usePhotoLibrary(): LibraryState {
     return true;
   }, []);
 
-  return { photos, limit, loading, error, uploading, upload, remove, reload, setError };
+  return { photos, limit, loading, error, uploading, progress, upload, remove, reload, setError };
 }

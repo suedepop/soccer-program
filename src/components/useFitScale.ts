@@ -14,7 +14,12 @@ export function useFitScale(naturalWidth: number, maxScale = 1) {
     const el = ref.current;
     if (!el) return;
     const update = () => {
-      const available = el.clientWidth;
+      // clientWidth includes padding, and every stage this measures has some.
+      // Scaling to it makes the ad wider than the box it sits in — by 24px on
+      // the editor's stage — which is how a page ends up wider than the phone.
+      const cs = getComputedStyle(el);
+      const available =
+        el.clientWidth - parseFloat(cs.paddingLeft || '0') - parseFloat(cs.paddingRight || '0');
       if (available > 0) setScale(Math.min(maxScale, available / naturalWidth));
     };
     update();

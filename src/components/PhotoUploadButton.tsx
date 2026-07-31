@@ -60,12 +60,30 @@ export default function PhotoUploadButton({
     );
   }
 
+  /**
+   * Two controls over one input, and CSS decides which is on screen.
+   *
+   * There is nothing to drag on a phone, and a dashed rectangle saying "drag
+   * photos here" is an instruction a parent cannot follow. They get a plain
+   * green button that opens the camera roll; the drop zone is for the people
+   * who actually have a mouse and a folder of photos.
+   */
   return (
     <>
       {control}
+
       <label
         htmlFor={id}
-        className={`dropzone${dragging ? ' dropzone-active' : ''}`}
+        className="btn btn-go btn-lg upload-cta"
+        style={{ cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.6 : 1 }}
+      >
+        <CameraIcon />
+        {busy ? 'Uploading…' : 'Choose photos'}
+      </label>
+
+      <label
+        htmlFor={id}
+        className={`dropzone upload-dropzone${dragging ? ' dropzone-active' : ''}`}
         style={{ cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.6 : 1 }}
         onDragOver={(e) => {
           e.preventDefault();
@@ -85,5 +103,19 @@ export default function PhotoUploadButton({
         </span>
       </label>
     </>
+  );
+}
+
+function CameraIcon() {
+  return (
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden focusable="false">
+      <path
+        d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.2a1 1 0 0 0 .83-.45l.74-1.1A1 1 0 0 1 10.1 4h3.8a1 1 0 0 1 .83.45l.74 1.1a1 1 0 0 0 .83.45h1.2A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5v-8Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy="12.5" r="3.2" stroke="currentColor" strokeWidth="1.8" />
+    </svg>
   );
 }

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import AdCanvas from '@/components/AdCanvas';
+import AdPreview from '@/components/AdPreview';
 import RichText from '@/components/RichText';
 import StatusBadge from '@/components/StatusBadge';
 import SubmitAdButton from '@/components/SubmitAdButton';
@@ -8,7 +8,7 @@ import { currentUser } from '@/lib/auth';
 import { getAd, validateForSubmit } from '@/lib/ads';
 import { getLayout, photoQuality } from '@/lib/layouts';
 import { getBackground } from '@/lib/backgrounds';
-import { AD_SIZES, CSS_DPI, SCHOOL, TEAMS, formatMoney } from '@/lib/config';
+import { AD_SIZES, SCHOOL, TEAMS, formatMoney } from '@/lib/config';
 
 export const metadata = { title: 'Your Ad' };
 export const dynamic = 'force-dynamic';
@@ -32,9 +32,6 @@ export default async function AdDetailPage({ params }: { params: Promise<{ id: s
       return photo ? { i, ...photoQuality(ad.size, slot, photo, photo.zoom ?? 1) } : null;
     })
     .filter((x): x is NonNullable<typeof x> => x !== null && x.quality !== 'good');
-
-  // Preview at up to 520px wide, never above actual size.
-  const scale = Math.min(1, 520 / (spec.widthIn * CSS_DPI));
 
   return (
     <div className="wrap page">
@@ -63,9 +60,7 @@ export default async function AdDetailPage({ params }: { params: Promise<{ id: s
 
       <div className="editor-grid">
         <div className="card">
-          <div className="preview-stage">
-            <AdCanvas ad={ad} scale={scale} showEmptySlots />
-          </div>
+          <AdPreview ad={ad} />
           <div style={{ marginTop: 12, fontSize: 13, color: 'var(--muted)' }}>
             {layout.name} layout · {getBackground(ad.backgroundId).name} background ·{' '}
             {spec.widthIn}&Prime; × {spec.heightIn}&Prime; at 300 DPI
