@@ -34,6 +34,8 @@ export const PATCH = handler(async (req: Request, ctx: Ctx) => {
     headingFont: body.headingFont === undefined ? undefined : String(body.headingFont),
     bodyFont: body.bodyFont === undefined ? undefined : String(body.bodyFont),
     nameEffect: body.nameEffect === undefined ? undefined : String(body.nameEffect),
+    nameEffectColor:
+      body.nameEffectColor === undefined ? undefined : String(body.nameEffectColor),
     textScale: body.textScale === undefined ? undefined : Number(body.textScale),
   });
 

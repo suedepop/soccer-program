@@ -2,7 +2,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import { AD_SIZES, CSS_DPI } from '@/lib/config';
 import BackgroundArt from '@/components/BackgroundArt';
 import { getBackground } from '@/lib/backgrounds';
-import { getNameEffect } from '@/lib/effects';
+import { getNameEffect, getNameEffectColor } from '@/lib/effects';
 import { resolveFont, type AdFont } from '@/lib/fonts';
 import { getLayout, placePhoto, TYPE_BASE, type Box, type PhotoSlot } from '@/lib/layouts';
 import { fitBodyText, fitHeading } from '@/lib/fit';
@@ -21,7 +21,9 @@ export interface AdCanvasProps {
     | 'attribution'
     | 'photos'
   > &
-    Partial<Pick<AdView, 'headingFont' | 'bodyFont' | 'nameEffect' | 'textScale'>>;
+    Partial<
+      Pick<AdView, 'headingFont' | 'bodyFont' | 'nameEffect' | 'nameEffectColor' | 'textScale'>
+    >;
   /** 1 = actual print size on a 96dpi screen. Preview uses e.g. 0.45. */
   scale?: number;
   /** Render dashed drop targets for empty slots (editor only). */
@@ -139,11 +141,15 @@ export default function AdCanvas({
   const bodyBold = bodyFont.syntheticBold ? 600 : 700;
 
   const effect = getNameEffect(ad.nameEffect ?? '');
-  const effectStyle = effect.style(nameFit.fontSize, {
-    heading: bg.colors.heading,
-    accent: bg.colors.accent,
-    dark: bg.dark,
-  });
+  const effectStyle = effect.style(
+    nameFit.fontSize,
+    {
+      heading: bg.colors.heading,
+      accent: bg.colors.accent,
+      dark: bg.dark,
+    },
+    getNameEffectColor(ad.nameEffectColor)
+  );
 
   const bySlot = new Map(ad.photos.map((p) => [p.slot, p]));
 

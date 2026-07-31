@@ -11,8 +11,18 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
       <header className="nav">
         <div className="wrap nav-inner">
           <Link className="brand" href="/">
-            <span className="brand-mark" aria-hidden>
-              ⚽
+            {/* The school's W is drawn in black and red, and the bar it sits on
+                is nearly black — hence the light chip behind it. Recolouring the
+                mark to fit the bar would mean throwing away the red. */}
+            <span className="brand-mark">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/fonts/logo/weir-high-logo.png"
+                alt=""
+                aria-hidden
+                width={1280}
+                height={606}
+              />
             </span>
             {SCHOOL.program}
           </Link>

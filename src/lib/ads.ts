@@ -18,9 +18,8 @@ function clampTextScale(value: number): number {
 }
 import { clampPan, clampZoom, defaultLayoutId, getLayout } from './layouts';
 import { DEFAULT_BACKGROUND_ID, getBackground } from './backgrounds';
-import { isNameEffectId } from './effects';
+import { isNameEffectColorId, isNameEffectId } from './effects';
 import { isFontId } from './fonts';
-import { stripMarkup } from './richtext';
 import type { AdView, AdWithOwner, PhotoRef } from './types';
 
 interface AdRow {
@@ -36,6 +35,7 @@ interface AdRow {
   heading_font: string;
   body_font: string;
   name_effect: string;
+  name_effect_color: string;
   text_scale: number;
   status: string;
   price_cents: number;
@@ -94,6 +94,7 @@ function toView(row: AdRow): AdView {
     headingFont: row.heading_font ?? '',
     bodyFont: row.body_font ?? '',
     nameEffect: row.name_effect ?? '',
+    nameEffectColor: row.name_effect_color ?? '',
     textScale: clampTextScale(row.text_scale ?? 1),
     status: row.status as AdStatus,
     priceCents: row.price_cents,
@@ -181,6 +182,8 @@ export interface AdPatch {
   bodyFont?: string;
   /** '' means no effect. */
   nameEffect?: string;
+  /** '' restores Automatic — the colour the effect derives itself. */
+  nameEffectColor?: string;
   textScale?: number;
 }
 
@@ -213,11 +216,16 @@ export function updateAd(id: number, patch: AdPatch): AdView | null {
       ? existing.nameEffect
       : patch.nameEffect;
 
+  const effectColor =
+    patch.nameEffectColor === undefined || !isNameEffectColorId(patch.nameEffectColor)
+      ? existing.nameEffectColor
+      : patch.nameEffectColor;
+
   db()
     .prepare(
       `UPDATE ads SET layout_id = ?, background_id = ?, team = ?, player_name = ?,
                       message = ?, attribution = ?, heading_font = ?, body_font = ?,
-                      name_effect = ?, text_scale = ?, updated_at = ?
+                      name_effect = ?, name_effect_color = ?, text_scale = ?, updated_at = ?
         WHERE id = ?`
     )
     .run(
@@ -230,6 +238,7 @@ export function updateAd(id: number, patch: AdPatch): AdView | null {
       font(patch.headingFont, existing.headingFont),
       font(patch.bodyFont, existing.bodyFont),
       effect,
+      effectColor,
       patch.textScale === undefined
         ? existing.textScale
         : clampTextScale(Number(patch.textScale)),
@@ -311,57 +320,10 @@ export function printableAds(): AdWithOwner[] {
   return listAllAds().filter((a) => a.status === 'paid' || a.status === 'submitted');
 }
 
-export interface AdIssue {
-  field: string;
-  message: string;
-}
-
-/** Blocking problems that stop an ad from being submitted. */
-export function validateForSubmit(ad: AdView): AdIssue[] {
-  const issues: AdIssue[] = [];
-  const layout = getLayout(ad.layoutId, ad.size);
-
-  // Strip markup first — a field holding only formatting marks is still empty.
-  const name = stripMarkup(ad.playerName).trim();
-  const message = stripMarkup(ad.message).trim();
-
-  // New ads ship with sample text so the preview is not an empty frame, which
-  // means "not empty" is no longer proof that anyone wrote anything. Refuse the
-  // two fields whose defaults could only ever be placeholder.
-  //
-  // The default attribution ("- All of us at work") is deliberately NOT checked:
-  // it is a phrase a business or a group of coworkers might genuinely mean, and
-  // blocking it would nag people who are already finished.
-  if (!name) {
-    issues.push({ field: 'playerName', message: 'Add the player’s name.' });
-  } else if (name === DEFAULT_AD_TEXT.playerName) {
-    issues.push({
-      field: 'playerName',
-      message: `Replace “${DEFAULT_AD_TEXT.playerName}” with the player’s actual name.`,
-    });
-  }
-
-  if (!message) {
-    issues.push({ field: 'message', message: 'Add your message.' });
-  } else if (message === stripMarkup(DEFAULT_AD_TEXT.message).trim()) {
-    issues.push({
-      field: 'message',
-      message: 'Replace the sample “Lorem ipsum” text with your own message.',
-    });
-  }
-  if (!stripMarkup(ad.attribution).trim()) {
-    issues.push({ field: 'attribution', message: 'Add who the ad is from (e.g. “Love, Mom and Dad”).' });
-  }
-  const filled = new Set(ad.photos.map((p) => p.slot));
-  const missing = layout.photos.map((_, i) => i).filter((i) => !filled.has(i));
-  if (missing.length) {
-    issues.push({
-      field: 'photos',
-      message:
-        missing.length === layout.photos.length
-          ? 'Upload a photo for this layout.'
-          : `Photo ${missing.map((i) => i + 1).join(' and ')} still needs an image.`,
-    });
-  }
-  return issues;
-}
+/**
+ * Re-exported so server callers can keep asking `@/lib/ads` for the rules; the
+ * rules themselves live in a client-safe module because the editor runs them in
+ * the browser as well. See src/lib/adChecks.ts.
+ */
+export { validateForSubmit } from './adChecks';
+export type { AdIssue } from './adChecks';

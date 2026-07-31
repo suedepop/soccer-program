@@ -3,7 +3,6 @@ import { notFound, redirect } from 'next/navigation';
 import AdEditor from '@/components/AdEditor';
 import { currentUser } from '@/lib/auth';
 import { getAd } from '@/lib/ads';
-import { AD_SIZES } from '@/lib/config';
 
 export const metadata = { title: 'Edit Ad' };
 export const dynamic = 'force-dynamic';
@@ -25,7 +24,7 @@ export default async function EditAdPage({ params }: { params: Promise<{ id: str
             {ad.playerName ? `${ad.playerName}'s ad` : 'Your ad'}
           </h1>
           <div style={{ color: 'var(--muted)', fontSize: 14 }}>
-            {AD_SIZES[ad.size].label} · changes save as you go
+            Five steps — and every change saves as you go
           </div>
         </div>
         <Link className="btn btn-ghost" href="/dashboard">

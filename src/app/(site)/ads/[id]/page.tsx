@@ -61,7 +61,7 @@ export default async function AdDetailPage({ params }: { params: Promise<{ id: s
         </div>
       </div>
 
-      <div className="editor-grid" style={{ gridTemplateColumns: '1fr minmax(300px, 380px)' }}>
+      <div className="editor-grid">
         <div className="card">
           <div className="preview-stage">
             <AdCanvas ad={ad} scale={scale} showEmptySlots />

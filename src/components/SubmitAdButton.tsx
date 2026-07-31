@@ -7,11 +7,23 @@ export default function SubmitAdButton({
   adId,
   disabled,
   warn,
+  label = 'Submit this ad',
+  beforeSubmit,
+  onSubmitted,
 }: {
   adId: number;
   disabled: boolean;
   /** Non-blocking caution shown in the confirm step (e.g. soft photos). */
   warn?: string;
+  label?: string;
+  /**
+   * Run before the POST. The editor uses it to flush whatever the autosave
+   * debounce is still holding — the server validates what it has stored, so an
+   * unsaved last edit would otherwise be judged, and printed, as absent.
+   */
+  beforeSubmit?: () => Promise<void> | void;
+  /** Where to go once it lands. Defaults to refreshing the current page. */
+  onSubmitted?: () => void;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -21,6 +33,7 @@ export default function SubmitAdButton({
   async function submit() {
     setBusy(true);
     setError(null);
+    if (beforeSubmit) await beforeSubmit();
     const res = await fetch(`/api/ads/${adId}/submit`, { method: 'POST' });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) {
@@ -28,7 +41,8 @@ export default function SubmitAdButton({
       setBusy(false);
       return;
     }
-    router.refresh();
+    if (onSubmitted) onSubmitted();
+    else router.refresh();
   }
 
   if (confirming) {
@@ -55,7 +69,7 @@ export default function SubmitAdButton({
   return (
     <div className="stack">
       <button className="btn btn-lg" disabled={disabled} onClick={() => setConfirming(true)}>
-        Submit this ad
+        {label}
       </button>
       {error && <div className="notice notice-bad">{error}</div>}
     </div>

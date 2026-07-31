@@ -75,7 +75,15 @@ const NAME_FONTS = [
   'big-shoulders-inline', 'bebas', 'playfair', 'dancing',
 ];
 const MESSAGE_FONTS = ['montserrat', 'nunito', 'playfair', 'lora', 'dancing', 'special-elite'];
-const EFFECTS = ['', 'soft-shadow', 'hard-shadow', 'glow', 'outline', 'outline-glow'];
+const EFFECTS = [
+  '',
+  'soft-shadow',
+  'hard-shadow',
+  'glow',
+  'outline',
+  'thick-outline',
+  'outline-glow',
+];
 const COPY = {
   playerName: 'Kylie Marsh',
   message:
