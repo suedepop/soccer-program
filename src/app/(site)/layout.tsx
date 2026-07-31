@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { currentUser } from '@/lib/auth';
 import { SCHOOL } from '@/lib/config';
-import LogoutButton from '@/components/LogoutButton';
+import SiteNav from '@/components/SiteNav';
 
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
   const user = await currentUser();
@@ -26,26 +26,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
             </span>
             {SCHOOL.program}
           </Link>
-          <nav className="nav-links">
-            {user ? (
-              <>
-                <Link href="/dashboard">My Ads</Link>
-                <Link href="/photos">Photos</Link>
-                <Link href="/ads/new">Create an Ad</Link>
-                {/*
-                  No Admin link on purpose — the boosters reach the admin screen
-                  by typing /admin, which asks for its own password. Keeping it
-                  out of the nav means parents never see a door they cannot open.
-                */}
-                <LogoutButton />
-              </>
-            ) : (
-              <>
-                <Link href="/login">Sign In</Link>
-                <Link href="/signup">Create Account</Link>
-              </>
-            )}
-          </nav>
+          <SiteNav signedIn={!!user} />
         </div>
       </header>
 

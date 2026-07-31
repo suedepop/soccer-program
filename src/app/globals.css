@@ -96,8 +96,16 @@ h3 {
 .nav-inner {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 12px;
   min-height: 62px;
+  /* So the open menu can drop onto its own full-width row underneath. */
+  flex-wrap: wrap;
+}
+@media (min-width: 700px) {
+  .nav-inner {
+    gap: 18px;
+    flex-wrap: nowrap;
+  }
 }
 .brand {
   display: flex;
@@ -135,22 +143,71 @@ h3 {
   height: 22px;
   width: auto;
 }
-.nav-links {
+/* The hamburger. Hidden once the links fit across the bar on their own. */
+.nav-toggle {
   margin-left: auto;
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding: 9px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 8px;
+  background: none;
+  color: #fff;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+.nav-toggle:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+.nav-toggle span {
+  display: block;
+  width: 18px;
+  height: 2px;
+  border-radius: 2px;
+  background: currentColor;
+  transition:
+    transform 0.15s ease,
+    opacity 0.15s ease;
+}
+/* Open, the three bars fold into a cross — the same control closes it. */
+.nav-toggle[aria-expanded='true'] span:nth-child(1) {
+  transform: translateY(6px) rotate(45deg);
+}
+.nav-toggle[aria-expanded='true'] span:nth-child(2) {
+  opacity: 0;
+}
+.nav-toggle[aria-expanded='true'] span:nth-child(3) {
+  transform: translateY(-6px) rotate(-45deg);
+}
+
+/* On a phone the menu is a panel on its own row, shown only when opened. */
+.nav-links {
+  display: none;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  width: 100%;
+  order: 3;
+  padding-bottom: 10px;
+}
+.nav-links.is-open {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
 }
 .nav-links a,
 .nav-links button {
   color: #efeae7;
   text-decoration: none;
-  font-size: 14px;
+  font-size: 15px;
   /* Links wrap as whole items; a broken "Create / Account" is two lines of
      header for no reason. */
   white-space: nowrap;
-  padding: 7px 11px;
+  /* A full-width row is a tap target a thumb cannot miss. */
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 11px 12px;
   border-radius: 7px;
   background: none;
   border: 0;
@@ -160,6 +217,30 @@ h3 {
 .nav-links a:hover,
 .nav-links button:hover {
   background: rgba(255, 255, 255, 0.12);
+}
+
+@media (min-width: 700px) {
+  .nav-toggle {
+    display: none;
+  }
+  .nav-links {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    width: auto;
+    margin-left: auto;
+    gap: 6px;
+    order: 0;
+    padding-bottom: 0;
+  }
+  .nav-links a,
+  .nav-links button {
+    display: inline-block;
+    width: auto;
+    font-size: 14px;
+    padding: 7px 11px;
+  }
 }
 
 .footer {
@@ -191,8 +272,13 @@ h3 {
   padding: 14px 16px;
 }
 
+/* Vertical only, and deliberately not the `padding` shorthand: .page is always
+   worn together with .wrap, and a shorthand here resets that wrap's side
+   padding to zero — which is how every heading, card, and form on the site came
+   to sit flush against the edge of a phone screen. */
 .page {
-  padding: 28px 0 40px;
+  padding-top: 28px;
+  padding-bottom: 40px;
 }
 
 .stack {
