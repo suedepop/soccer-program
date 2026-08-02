@@ -121,6 +121,20 @@ function migrate(conn: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_ads_user ON ads(user_id);
     CREATE INDEX IF NOT EXISTS idx_ads_status ON ads(status);
 
+    -- Who signed in, when, and from where. Kept even after an account is
+    -- deleted (user_id goes null, the email stays) — an audit trail that
+    -- disappears with the account it is about is not an audit trail.
+    CREATE TABLE IF NOT EXISTS login_events (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id    INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      email      TEXT NOT NULL DEFAULT '',
+      kind       TEXT NOT NULL,
+      ip         TEXT NOT NULL DEFAULT '',
+      user_agent TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_login_events_time ON login_events(created_at DESC, id DESC);
+
     CREATE TABLE IF NOT EXISTS ad_photos (
       ad_id      INTEGER NOT NULL REFERENCES ads(id) ON DELETE CASCADE,
       slot       INTEGER NOT NULL,

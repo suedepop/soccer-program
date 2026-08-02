@@ -1,6 +1,7 @@
 import { db, UPLOAD_DIR } from '@/lib/db';
 import { countUsers, createSession, findUserByEmail, hashPassword, normalizeEmail } from '@/lib/auth';
 import { fail, handler, ok } from '@/lib/http';
+import { record } from '@/lib/audit';
 import { givePlaceholder } from '@/lib/placeholder';
 
 export const POST = handler(async (req: Request) => {
@@ -35,6 +36,7 @@ export const POST = handler(async (req: Request) => {
     console.warn('[signup] Could not add the placeholder photo:', err);
   }
 
+  record(req, 'signup', { userId, email });
   await createSession(userId);
   return ok({ id: userId, isAdmin: !!isAdmin });
 });

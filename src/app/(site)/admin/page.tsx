@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import AdCanvas from '@/components/AdCanvas';
 import AdminAdControls from '@/components/AdminAdControls';
-import AdminGate from '@/components/AdminGate';
 import StatusBadge from '@/components/StatusBadge';
 import { currentUser } from '@/lib/auth';
 import { listAllAds } from '@/lib/ads';
@@ -17,11 +16,11 @@ export default async function AdminPage({
 }: {
   searchParams: Promise<{ status?: string }>;
 }) {
-  // Unlinked from the nav and behind its own password: anyone can reach the URL,
-  // but without an admin session all they get is the prompt. Parents who wander
-  // in see it too, which is friendlier than the 404 this used to serve them.
+  // The layout already shows the gate; this is here because declining to
+  // render children does not stop them running, and everything below reads the
+  // whole database.
   const user = await currentUser();
-  if (!user?.is_admin) return <AdminGate />;
+  if (!user?.is_admin) return null;
 
   const sp = await searchParams;
   const filter = (sp.status && sp.status in AD_STATUS ? sp.status : undefined) as
@@ -45,9 +44,7 @@ export default async function AdminPage({
   const fourUp = fourUpSheetCount(sheets);
 
   return (
-    <div className="wrap page">
-      <h1>Admin</h1>
-
+    <>
       <div className="pricing" style={{ marginBottom: 20 }}>
         <Stat label="Payment due" value={formatMoney(owed)} sub={`${totals.submitted.length} ads`} tone="warn" />
         <Stat label="Collected" value={formatMoney(collected)} sub={`${totals.paid.length} ads`} tone="ok" />
@@ -205,7 +202,7 @@ export default async function AdminPage({
           </tbody>
         </table>
       </div>
-    </div>
+    </>
   );
 }
 

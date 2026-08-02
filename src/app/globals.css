@@ -469,6 +469,14 @@ textarea {
 
 /* ----------------------------------------------------------------- table -- */
 
+/* Tables are the one thing here that genuinely cannot fit a phone. They scroll
+   inside their own box rather than making the whole page wider than the
+   screen — which is what forces the pinch-zoom everywhere else. */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 table.data {
   width: 100%;
   border-collapse: collapse;
@@ -871,10 +879,19 @@ table.data tr:last-child td {
 .chip:hover {
   border-color: var(--ink-2);
 }
-.chip[aria-pressed='true'] {
+/* aria-pressed for the option chips, aria-current for the ones that are links
+   to a section — same look, since to a reader they are the same control. */
+.chip[aria-pressed='true'],
+.chip[aria-current='page'] {
   border-color: var(--red);
   background: var(--red-soft);
   color: var(--red-dark);
+}
+a.chip {
+  text-decoration: none;
+}
+.admin-nav {
+  margin-bottom: 18px;
 }
 /* Marks the face a background pairs with, so "Match the background" does not
    have to be its own button. */

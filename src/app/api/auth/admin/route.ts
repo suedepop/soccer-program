@@ -1,4 +1,5 @@
 import { signInAdmin } from '@/lib/auth';
+import { record } from '@/lib/audit';
 import { fail, handler, ok } from '@/lib/http';
 
 /**
@@ -52,10 +53,12 @@ export const POST = handler(async (req: Request) => {
 
   if (!(await signInAdmin(username, password))) {
     recordFailure(key);
+    record(req, 'admin-failed', { email: username });
     // One message for both fields — no hint about which half was wrong.
     return fail('That username and password do not match.', 401);
   }
 
   attempts.delete(key);
+  record(req, 'admin', { email: username });
   return ok({ ok: true });
 });

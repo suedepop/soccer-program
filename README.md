@@ -478,10 +478,54 @@ never costs a parent part of their message.
 
 ## What the admin sees
 
-`/admin` (admins only) lists every ad with a thumbnail, who ordered it, contact
-details, low-resolution flags, and a free-text note field for tracking payments.
-Totals across the top show money due, money collected, and how many printed pages
-the book currently runs to.
+Three sections behind the one password, with the section nav in
+`src/app/(site)/admin/layout.tsx`:
+
+| Section | What it is for |
+| --- | --- |
+| **Dashboard** (`/admin`) | Every ad: thumbnail, who ordered it, contact details, low-resolution flags, a note field for tracking payments, and totals for money due, money collected, and how long the book runs |
+| **Users** (`/admin/users`) | Every account, when they joined, when they last got in, how many ads and photos they have — and a password reset |
+| **Audit** (`/admin/audit`) | Who signed in, who tried and failed, and from where |
+
+The gate lives in the layout, but **each page checks `is_admin` again for
+itself**. A layout that declines to render its children does not stop those
+children being *executed*, and these pages read the whole database.
+
+### Resetting a parent's password
+
+There is no email on this site to send a reset link through, so the admin issues
+a new password and reads it down the phone: `RTFM-7K2P-WXQ9`, from an alphabet
+with no I, O, 0 or 1 in it. It is shown once, in the row, and never stored in
+readable form — lose it and issue another.
+
+Two things worth knowing:
+
+- **A reset does not sign the parent out** of a browser they are already signed
+  in on. Sessions are signed JWTs and this app keeps no revocation list, so the
+  old cookie works until it expires. It does stop anyone who only knew the old
+  password.
+- **The `admin` row cannot be reset here**, and it is the only one that cannot.
+  That row is a stub whose stored password is deliberately unusable; the screen
+  is reached with `ADMIN_PASSWORD` from the environment, and giving the stub a
+  working password would quietly open a second way in through the parents' login
+  form. Note this is narrower than `is_admin` — the first parent to sign up is
+  made an admin too, and that is a real person with a real password.
+
+### The audit log
+
+`login_events` records sign-ins, failed attempts, new accounts, admin sign-ins
+(successful and not), and password resets — with the address from
+`X-Forwarded-For`, since everything arrives through Caddy and the socket address
+is always the proxy.
+
+Rows survive the account they are about: `user_id` goes null on delete and the
+email stays, because an audit trail that disappears along with the account is
+not an audit trail. Writing an event can never fail a sign-in — `record()`
+swallows its own errors, since a parent locked out by an unhappy audit table
+would be a far worse outage than a gap in the log.
+
+Signing out is not recorded. The question that actually comes up is "did they
+ever get in", and that is what this answers.
 
 ### Print files
 

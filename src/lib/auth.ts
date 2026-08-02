@@ -179,6 +179,18 @@ function ensureAdminUser(): number {
 }
 
 /**
+ * True only for the row ADMIN_PASSWORD signs into.
+ *
+ * Not the same question as `is_admin`: the first parent to sign up is made an
+ * admin too, and that account has a real password its owner chose and may
+ * legitimately need reset. This row is the other thing — a stub whose stored
+ * password is deliberately unusable.
+ */
+export function isAdminCredentialAccount(email: string): boolean {
+  return email.trim().toLowerCase() === ADMIN_USERNAME.trim().toLowerCase();
+}
+
+/**
  * Checks the admin credentials and, on a match, signs the browser in as the
  * admin. Replaces any parent session that was already there, which is the
  * behaviour a shared family computer wants anyway.
