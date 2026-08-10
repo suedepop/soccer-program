@@ -633,6 +633,24 @@ limits.
 | How pages are assembled  | `src/lib/impose.ts`                                                     |
 | Site styling             | `src/app/globals.css`                                                   |
 
+### Prices, after ads already exist
+
+An ad records the price it was created at, so editing `AD_SIZES` only affects ads
+made from then on — the ones already in the database keep the old price, which is
+what you want when a parent has been quoted a figure and what you do *not* want
+when you are correcting the price list before anyone has paid.
+
+To move the existing ones onto the new prices:
+
+```bash
+DATA_DIR=/srv/soccer/data npm run reprice              # show the change, write nothing
+DATA_DIR=/srv/soccer/data npm run reprice -- --apply   # do it
+```
+
+Add `--unpaid-only` to leave ads already marked **Paid** at whatever was actually
+collected. Back the database up first (`sqlite3 program.sqlite ".backup pre-reprice.sqlite"`);
+there is no undo.
+
 A new layout is just geometry — photo slots plus three text boxes, all in percent:
 
 ```ts
