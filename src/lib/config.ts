@@ -58,7 +58,7 @@ export const AD_SIZES: Record<
     widthIn: 8.5,
     heightIn: 5.5,
     maxPhotos: 2,
-    priceCents: 6000,
+    priceCents: 5000,
     blurb: 'Landscape half page. Up to 2 photos.',
   },
   quarter: {
@@ -67,7 +67,7 @@ export const AD_SIZES: Record<
     widthIn: 4.25,
     heightIn: 5.5,
     maxPhotos: 1,
-    priceCents: 3500,
+    priceCents: 3000,
     blurb: 'A single photo and a short message. Our most popular option.',
   },
 };
