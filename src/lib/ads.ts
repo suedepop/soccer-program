@@ -3,6 +3,7 @@ import { db, now } from './db';
 import {
   AD_SIZES,
   DEFAULT_AD_TEXT,
+  MAX_AD_PRICE_CENTS,
   MAX_TEXT_SCALE,
   MIN_TEXT_SCALE,
   STORAGE_LIMITS,
@@ -303,6 +304,23 @@ export function setStatus(id: number, status: AdStatus) {
         WHERE id = ?`
     )
     .run(status, submitted, status, paid, stamp, id);
+}
+
+/**
+ * Overrides what one ad costs.
+ *
+ * An ad's price is a record, not a lookup — it keeps the figure its owner was
+ * quoted even after AD_SIZES moves underneath it. That is what makes this
+ * necessary: comping an ad for a sponsor, honouring a discount, or putting an
+ * ad onto a corrected price list are all things no config change can express.
+ *
+ * Clamped rather than rejected, because the caller has already validated and
+ * this is the last line before a mistyped figure becomes the money the
+ * boosters think they are owed.
+ */
+export function setPrice(id: number, cents: number) {
+  const safe = Math.max(0, Math.min(MAX_AD_PRICE_CENTS, Math.round(cents)));
+  db().prepare('UPDATE ads SET price_cents = ?, updated_at = ? WHERE id = ?').run(safe, now(), id);
 }
 
 export function setAdminNotes(id: number, notes: string) {

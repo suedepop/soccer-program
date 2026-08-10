@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import AdCanvas from '@/components/AdCanvas';
 import AdminAdControls from '@/components/AdminAdControls';
+import AdminPrice from '@/components/AdminPrice';
 import StatusBadge from '@/components/StatusBadge';
 import { currentUser } from '@/lib/auth';
 import { listAllAds } from '@/lib/ads';
@@ -172,9 +173,12 @@ export default async function AdminPage({
                   </td>
                   <td>
                     {AD_SIZES[ad.size].label}
-                    <div style={{ fontSize: 12.5, color: 'var(--muted)' }}>
-                      {formatMoney(ad.priceCents)}
-                    </div>
+                    <AdminPrice
+                      adId={ad.id}
+                      size={ad.size}
+                      priceCents={ad.priceCents}
+                      status={ad.status}
+                    />
                   </td>
                   <td>
                     <StatusBadge status={ad.status} />

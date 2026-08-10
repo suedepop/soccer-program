@@ -8,7 +8,18 @@
  *
  *   npm run reprice                     # show what would change, touch nothing
  *   npm run reprice -- --apply          # actually write
- *   npm run reprice -- --apply --unpaid-only   # leave 'paid' ads at what was collected
+ *   npm run reprice -- --apply --include-paid   # ads already marked paid too
+ *
+ * Ads already marked paid are left alone unless you ask for them. Their price
+ * is not a quote any more, it is the record of what somebody handed over, and
+ * a bulk job should not quietly restate that. Individual corrections belong in
+ * the admin screen, where the change is one deliberate click on one ad.
+ *
+ * This moves every ad it touches ONTO the list price, so it does not know the
+ * difference between an ad left behind by a price change and one a booster
+ * deliberately set — a comped sponsor, a negotiated rate. Both look like "not
+ * the list price" from here. Read the preview before applying: anything priced
+ * off-list on purpose will show up in it, and will be flattened.
  *
  * Point DATA_DIR at the database you mean to change — the same absolute path
  * the app runs with. Without it this edits ./data, which in a checkout is your
@@ -41,7 +52,7 @@ try {
 }
 
 const apply = process.argv.includes('--apply');
-const unpaidOnly = process.argv.includes('--unpaid-only');
+const includePaid = process.argv.includes('--include-paid');
 
 const file = path.join(path.resolve(process.env.DATA_DIR || './data'), 'program.sqlite');
 console.log(`Database: ${file}`);
@@ -70,8 +81,8 @@ for (const g of groups) {
     continue;
   }
   if (g.old_cents === spec.priceCents) continue;
-  if (unpaidOnly && g.status === 'paid') {
-    skipped.push({ ...g, why: 'already paid' });
+  if (g.status === 'paid' && !includePaid) {
+    skipped.push({ ...g, why: 'already paid — pass --include-paid to move it too' });
     continue;
   }
   changes.push({ ...g, new_cents: spec.priceCents, label: spec.label });

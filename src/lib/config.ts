@@ -75,6 +75,13 @@ export const AD_SIZES: Record<
 export const AD_SIZE_ORDER: AdSize[] = ['full', 'half', 'quarter'];
 
 /**
+ * Ceiling on a hand-entered price. Not a price — a sanity bound, so a slipped
+ * decimal in the admin screen cannot turn a $50 half page into $5,000 of
+ * "payment due". Raise it if a sponsor ever genuinely pays more.
+ */
+export const MAX_AD_PRICE_CENTS = 100_000;
+
+/**
  * How many photos one account may keep in its library. Photos are uploaded
  * once and then placed into any number of ads, so this is a per-person cap on
  * stored images, not on ads.

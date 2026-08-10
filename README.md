@@ -659,9 +659,21 @@ npm run reprice
 npm run reprice -- --apply
 ```
 
-Add `--unpaid-only` to leave ads already marked **Paid** at whatever was actually
-collected. There is no undo, so take a copy of `/srv/soccer/data` first — see
-[Backing up](#backing-up) for why copying the `.sqlite` file alone is not enough.
+Ads already marked **Paid** are left alone — their price records what somebody
+actually handed over, not what they would be quoted today. Pass `--include-paid`
+to move those as well. There is no undo, so take a copy of `/srv/soccer/data`
+first — see [Backing up](#backing-up) for why copying the `.sqlite` file alone is
+not enough.
+
+The script moves ads *onto* the list price, and cannot tell an ad the price
+change left behind from one somebody set deliberately — a comped sponsor reads
+as "not the list price" just like the rest. Anything off-list appears in the
+preview, so read it before applying.
+
+For a single ad — comping a sponsor, honouring a discount, fixing one figure —
+use the price beside each ad in the admin screen instead. No server access, it
+works on paid ads too, and ads priced away from the list show a small `list $50`
+underneath so an intentional exception is visible at a glance.
 
 Deploy the price change *before* running this: the two want to agree, and the
 script reads its prices from the same `config.ts` the running site does.
