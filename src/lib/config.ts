@@ -11,7 +11,7 @@ export const SCHOOL = {
   contactEmail: 'weirhighsoccer@gmail.com',
   contactName: 'Weir High Soccer Boosters',
   /** Shown on the landing page and the checkout screen. */
-  deadline: 'September 12, 2026',
+  deadline: 'August 24, 2026',
   /**
    * Payment instructions — we collect money off-site. Rendered as a list, one
    * entry per line, with **bold** honoured; a newline inside an entry is kept,
