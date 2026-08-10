@@ -9,14 +9,18 @@ async function ownedAd(id: number) {
   const user = await requireUser();
   const ad = getAd(id);
   if (!ad || (ad.userId !== user.id && !user.is_admin)) return null;
-  return ad;
+  return { ad, isAdmin: !!user.is_admin };
 }
 
 export const PATCH = handler(async (req: Request, ctx: Ctx) => {
   const { id } = await ctx.params;
-  const ad = await ownedAd(Number(id));
-  if (!ad) return fail('Ad not found.', 404);
-  if (ad.status === 'paid' || ad.status === 'cancelled') {
+  const found = await ownedAd(Number(id));
+  if (!found) return fail('Ad not found.', 404);
+  const { ad, isAdmin } = found;
+  // The lock stops a parent rewriting an ad after it is paid for or called off.
+  // It has never applied to the boosters — "contact the boosters if you need a
+  // change" is only true if they can actually make one.
+  if (!isAdmin && (ad.status === 'paid' || ad.status === 'cancelled')) {
     return fail('This ad is locked. Contact the boosters if you need a change.', 409);
   }
 
@@ -44,9 +48,14 @@ export const PATCH = handler(async (req: Request, ctx: Ctx) => {
 
 export const DELETE = handler(async (_req: Request, ctx: Ctx) => {
   const { id } = await ctx.params;
-  const ad = await ownedAd(Number(id));
-  if (!ad) return fail('Ad not found.', 404);
-  if (ad.status === 'paid') return fail('Paid ads cannot be deleted.', 409);
+  const found = await ownedAd(Number(id));
+  if (!found) return fail('Ad not found.', 404);
+  const { ad, isAdmin } = found;
+  // A parent may not delete away a debt or a paid record. An admin may, because
+  // somebody has to be able to remove a duplicate order or an ad paid for by
+  // mistake — with the caveat that 'cancelled' keeps the record and this does
+  // not. The admin screen offers both and says which is which.
+  if (!isAdmin && ad.status === 'paid') return fail('Paid ads cannot be deleted.', 409);
   deleteAd(ad.id);
   return ok({ ok: true });
 });

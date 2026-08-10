@@ -191,7 +191,13 @@ export default async function AdminPage({
                     </div>
                   </td>
                   <td style={{ minWidth: 230 }}>
-                    <AdminAdControls adId={ad.id} status={ad.status} notes={ad.adminNotes} />
+                    <AdminAdControls
+                      adId={ad.id}
+                      status={ad.status}
+                      notes={ad.adminNotes}
+                      playerName={ad.playerName}
+                      priceCents={ad.priceCents}
+                    />
                   </td>
                 </tr>
               );

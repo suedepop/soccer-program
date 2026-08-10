@@ -110,6 +110,13 @@ export function findUserByEmail(email: string) {
     | undefined;
 }
 
+/** The account an ad belongs to, so an admin can be told whose ad they opened. */
+export function findUserById(id: number): User | undefined {
+  return db()
+    .prepare('SELECT id, email, name, phone, is_admin, created_at FROM users WHERE id = ?')
+    .get(id) as User | undefined;
+}
+
 export function countUsers(): number {
   const row = db().prepare('SELECT COUNT(*) AS n FROM users').get() as { n: number };
   return row.n;
