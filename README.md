@@ -640,16 +640,31 @@ made from then on — the ones already in the database keep the old price, which
 what you want when a parent has been quoted a figure and what you do *not* want
 when you are correcting the price list before anyone has paid.
 
-To move the existing ones onto the new prices:
+To move the existing ones onto the new prices, **on the server**, inside the
+container that already has the database mounted and `DATA_DIR` set:
 
 ```bash
-DATA_DIR=/srv/soccer/data npm run reprice              # show the change, write nothing
-DATA_DIR=/srv/soccer/data npm run reprice -- --apply   # do it
+cd /srv/soccer
+docker compose exec app node scripts/reprice-ads.mjs            # show the change, write nothing
+docker compose exec app node scripts/reprice-ads.mjs --apply    # do it
+```
+
+`exec`, not `run` — it reuses the running container rather than starting a second
+one against the same SQLite file.
+
+Locally, where the checkout is the working directory:
+
+```bash
+npm run reprice
+npm run reprice -- --apply
 ```
 
 Add `--unpaid-only` to leave ads already marked **Paid** at whatever was actually
-collected. Back the database up first (`sqlite3 program.sqlite ".backup pre-reprice.sqlite"`);
-there is no undo.
+collected. There is no undo, so take a copy of `/srv/soccer/data` first — see
+[Backing up](#backing-up) for why copying the `.sqlite` file alone is not enough.
+
+Deploy the price change *before* running this: the two want to agree, and the
+script reads its prices from the same `config.ts` the running site does.
 
 A new layout is just geometry — photo slots plus three text boxes, all in percent:
 

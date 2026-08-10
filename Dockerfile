@@ -88,6 +88,11 @@ COPY package.json next.config.mjs ./
 # make-admin.mjs is how the first booster account gets its admin flag on a
 # server nobody can log into yet.
 COPY scripts ./scripts
+# The only piece of src/ the runtime needs. reprice-ads.mjs reads the price list
+# straight from it rather than keeping a second copy that could drift, and the
+# rest of src/ is already compiled into .next. Node strips the types on import
+# (22.18+), so no build step stands between this file and the script.
+COPY --from=build /app/src/lib/config.ts ./src/lib/config.ts
 
 # The local binary, not `npx puppeteer`, so the Chrome build is the one this
 # exact Puppeteer expects and nothing is resolved from the registry at build.

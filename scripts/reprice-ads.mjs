@@ -19,7 +19,26 @@
  */
 import Database from 'better-sqlite3';
 import path from 'node:path';
-import { AD_SIZES, formatMoney } from '../src/lib/config.ts';
+import { fileURLToPath } from 'node:url';
+
+// Imported rather than copied, so the script cannot drift from the price list
+// the site shows. That means it needs src/lib/config.ts on disk and a Node new
+// enough to strip its types on import — true in a checkout, and true in the
+// container because the Dockerfile copies that one file in. Both failure modes
+// otherwise surface as a bare ERR_MODULE_NOT_FOUND, which says nothing useful
+// at the point someone is running this against live data.
+const CONFIG = fileURLToPath(new URL('../src/lib/config.ts', import.meta.url));
+let AD_SIZES, formatMoney;
+try {
+  ({ AD_SIZES, formatMoney } = await import(new URL('../src/lib/config.ts', import.meta.url)));
+} catch (err) {
+  console.error(`Could not read the price list from ${CONFIG}\n`);
+  console.error(`  ${err.message}\n`);
+  console.error('Either that file is missing (an older image predating the COPY in');
+  console.error('the Dockerfile — redeploy), or this Node cannot strip TypeScript');
+  console.error(`types on import (needs 22.18+, this is ${process.version}).`);
+  process.exit(1);
+}
 
 const apply = process.argv.includes('--apply');
 const unpaidOnly = process.argv.includes('--unpaid-only');
