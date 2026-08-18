@@ -529,6 +529,14 @@ the same `PhotoTile`, pointed at a different base path — the admin endpoint
 answers in the shape `/api/photos` does. The one visible difference is the
 delete button, which the admin view does not pass.
 
+**The ad editor uses it too.** An ad may only hold photos belonging to *its
+owner* — `/api/ads/[id]/photos` checks `row.user_id !== ad.userId` and refuses
+otherwise — so when an admin edits somebody else's ad, the picker is pointed at
+that parent's library rather than the admin's own (`libraryOwnerId` on
+`AdEditor`). Before this it showed the admin their own photos, every one of
+which the API then rejected. Uploading from inside the picker lands in the
+owner's library, which is where the ad can actually use it.
+
 ### Rights-managed photos
 
 A checkbox on that upload marks the batch **rights-managed** — a school
@@ -784,7 +792,7 @@ node scripts/fetch-fonts.mjs                            # download woff2 + write
 node scripts/measure-fonts.mjs                          # print avgGlyph / boldRatio
 
 # With the server running:
-node scripts/smoke.mjs                                  # end-to-end check (82 assertions)
+node scripts/smoke.mjs                                  # end-to-end check (85 assertions)
 node scripts/name-fit.mjs <admin-email> <password>      # 2,300 layout x font x name combinations
 node scripts/text-fit.mjs <admin-email> <password>      # 135 message fit + orphan combinations
 node scripts/contact-sheet.mjs <admin-email> <password> # tile every layout, background, font, effect

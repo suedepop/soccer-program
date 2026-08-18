@@ -521,6 +521,49 @@ const newest = withGift.photos.find((p) => !ownView.photos.some((o) => o.id === 
 const delGift = await req(`/api/photos/${newest.id}`, { method: 'DELETE' });
 check('the parent can delete a photo the admin added', delGift.ok, `status=${delGift.status}`);
 
+// 17c. That same endpoint is what the editor's picker loads when an admin is
+// working on somebody else's ad. An ad may only hold photos belonging to its
+// owner, so the picker has to point at the owner's library — offering the admin
+// their own was offering a set in which every choice came back 404.
+cookie = libCookie;
+const parentsAd = await json('/api/ads', 'POST', { size: 'quarter' });
+
+cookie = savedCookie;
+const ownAd = await json('/api/ads', 'POST', { size: 'quarter' });
+const adminOwn = (await getJson('/api/photos')).photos[0];
+const intoOwn = await req(`/api/ads/${ownAd.id}/photos`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ slot: 0, fileId: adminOwn.id }),
+});
+// Their own photo in their own ad is the ordinary case, and still works.
+check('an admin places their own photo in their own ad', intoOwn.ok, `status=${intoOwn.status}`);
+
+const intoTheirs = await req(`/api/ads/${parentsAd.id}/photos`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ slot: 0, fileId: adminOwn.id }),
+});
+check(
+  "an admin's own photo is refused for another parent's ad",
+  intoTheirs.status === 404,
+  `status=${intoTheirs.status}`
+);
+
+// One from the owner's library — read through the very endpoint the picker
+// loads — does go in.
+const theirs = (await getJson(adminLibPath)).photos[0];
+const fromTheirLibrary = await req(`/api/ads/${parentsAd.id}/photos`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ slot: 0, fileId: theirs.id }),
+});
+check(
+  "a photo from the owner's library goes in",
+  fromTheirLibrary.ok,
+  `status=${fromTheirLibrary.status}`
+);
+
 // ---------------------------------------------------------------------------
 // 18. The 100-photo cap, including partial batches
 // ---------------------------------------------------------------------------

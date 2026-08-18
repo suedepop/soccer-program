@@ -80,7 +80,19 @@ const SAMPLE_TEXT = {
   attribution: 'Love, Mom and Dad',
 };
 
-export default function AdEditor({ initialAd }: { initialAd: AdView }) {
+export default function AdEditor({
+  initialAd,
+  libraryOwnerId,
+}: {
+  initialAd: AdView;
+  /**
+   * Whose library the picker shows, when that is not the person using it — an
+   * admin editing a parent's ad. The photos in an ad have to belong to the ad's
+   * owner (`/api/ads/[id]/photos` enforces it), so showing the admin their own
+   * library offered them a set where every choice was refused.
+   */
+  libraryOwnerId?: number;
+}) {
   const router = useRouter();
   const [ad, setAd] = useState<AdView>(initialAd);
   const [stepIndex, setStepIndex] = useState(0);
@@ -88,7 +100,12 @@ export default function AdEditor({ initialAd }: { initialAd: AdView }) {
   const [error, setError] = useState<string | null>(null);
   /** Which slot the library picker is open for, if any. */
   const [pickerSlot, setPickerSlot] = useState<number | null>(null);
-  const library = usePhotoLibrary();
+  // A fresh string each render would restart the hook's load effect forever.
+  const libraryPath = useMemo(
+    () => (libraryOwnerId ? `/api/admin/users/${libraryOwnerId}/photos` : undefined),
+    [libraryOwnerId]
+  );
+  const library = usePhotoLibrary(libraryPath);
   const shellRef = useRef<HTMLDivElement>(null);
   const chipRef = useRef<HTMLButtonElement>(null);
 
@@ -291,6 +308,7 @@ export default function AdEditor({ initialAd }: { initialAd: AdView }) {
           slot={layout.photos[pickerSlot]}
           slotIndex={pickerSlot}
           currentFileId={photosBySlot.get(pickerSlot)?.fileId}
+          someoneElses={!!libraryOwnerId}
           onSelect={async (fileId) => {
             const slot = pickerSlot;
             setPickerSlot(null);
@@ -413,6 +431,15 @@ export default function AdEditor({ initialAd }: { initialAd: AdView }) {
                 {layout.photos.length === 0 ? (
                   <div className="notice notice-info">
                     This layout is all type — there are no photos to place. Carry on to the wording.
+                  </div>
+                ) : libraryOwnerId ? (
+                  <div className="notice notice-info">
+                    These come from{' '}
+                    <Link href={`/admin/photos/${libraryOwnerId}`} target="_blank">
+                      this parent’s photo library
+                    </Link>
+                    , not yours — an ad can only hold photos its owner has. Anything you upload
+                    here lands in their library too.
                   </div>
                 ) : (
                   <div className="notice notice-info">

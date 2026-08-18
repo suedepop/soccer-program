@@ -56,7 +56,9 @@ export default async function EditAdPage({ params }: { params: Promise<{ id: str
         </div>
       )}
 
-      <AdEditor initialAd={ad} />
+      {/* An admin's picker has to offer the owner's library, not their own —
+          the ad can only hold photos that belong to whoever owns it. */}
+      <AdEditor initialAd={ad} libraryOwnerId={someoneElses ? ad.userId : undefined} />
     </div>
   );
 }

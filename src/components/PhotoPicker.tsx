@@ -22,6 +22,7 @@ export default function PhotoPicker({
   currentFileId,
   onSelect,
   onClose,
+  someoneElses = false,
 }: {
   library: LibraryState;
   size: AdSize;
@@ -30,6 +31,8 @@ export default function PhotoPicker({
   currentFileId?: number;
   onSelect: (fileId: number) => void;
   onClose: () => void;
+  /** An admin is picking out of the ad owner's library rather than their own. */
+  someoneElses?: boolean;
 }) {
   const [hideSmall, setHideSmall] = useState(false);
   const required = requiredPixels(size, slot);
@@ -69,7 +72,8 @@ export default function PhotoPicker({
             <h3 style={{ margin: 0 }}>Choose photo {slotIndex + 1}</h3>
             <div className="hint" style={{ marginTop: 2 }}>
               This spot wants at least {required.w}×{required.h} pixels ·{' '}
-              {library.photos.length} of {library.limit} photos in your library
+              {library.photos.length} of {library.limit} photos in{' '}
+              {someoneElses ? 'their library' : 'your library'}
             </div>
           </div>
           <button className="btn btn-sm btn-ghost" onClick={onClose} aria-label="Close">
@@ -111,7 +115,9 @@ export default function PhotoPicker({
           ) : library.photos.length === 0 ? (
             <div style={{ textAlign: 'center', padding: 24 }}>
               <p style={{ color: 'var(--muted)' }}>
-                Your photo library is empty. Upload a few and they will be available to every ad.
+                {someoneElses
+                  ? 'This parent’s photo library is empty. Anything you upload here goes into it, and they can use it in their other ads too.'
+                  : 'Your photo library is empty. Upload a few and they will be available to every ad.'}
               </p>
             </div>
           ) : (
