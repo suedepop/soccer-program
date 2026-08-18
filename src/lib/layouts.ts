@@ -159,6 +159,33 @@ const HALF: Layout[] = [
     rule: true,
   },
   {
+    id: 'h-one-left',
+    size: 'half',
+    name: 'One Photo, Left',
+    description: 'A single tall photo down the left, name and message beside it.',
+    // The margins are symmetric with One Photo, Right: picture 4->45, a 4-wide
+    // gutter, text 49->96. Mirroring the pair swaps the two columns and nothing
+    // else, so the two cards in the picker read as the same design either way.
+    photos: [{ x: 4, y: 8, w: 41, h: 84 }],
+    playerName: { x: 49, y: 9, w: 47, h: 15 },
+    message: { x: 49, y: 26, w: 47, h: 52 },
+    attribution: { x: 49, y: 80, w: 47, h: 11 },
+    align: 'left',
+    rule: true,
+  },
+  {
+    id: 'h-one-right',
+    size: 'half',
+    name: 'One Photo, Right',
+    description: 'Mirror of One Photo, Left — the message reads first.',
+    photos: [{ x: 55, y: 8, w: 41, h: 84 }],
+    playerName: { x: 4, y: 9, w: 47, h: 15 },
+    message: { x: 4, y: 26, w: 47, h: 52 },
+    attribution: { x: 4, y: 80, w: 47, h: 11 },
+    align: 'left',
+    rule: true,
+  },
+  {
     id: 'h-banner',
     size: 'half',
     name: 'Banner',
@@ -235,6 +262,21 @@ const FULL: Layout[] = [
     playerName: { x: 6, y: 44, w: 88, h: 9.5 },
     message: { x: 11, y: 54.5, w: 78, h: 13 },
     attribution: { x: 11, y: 68.5, w: 78, h: 5 },
+    align: 'center',
+    rule: true,
+  },
+  {
+    id: 'f-one-top',
+    size: 'full',
+    name: 'One Photo, Top',
+    description: 'One big photo across the top, and the rest of the page for your message.',
+    // Nearly five inches tall and seven and a half wide: with no second photo to
+    // sit beside, the picture takes the whole top of the page and the message
+    // gets a taller box than any other full-page layout except the Triptych.
+    photos: [{ x: 6, y: 5, w: 88, h: 45 }],
+    playerName: { x: 6, y: 52.5, w: 88, h: 10 },
+    message: { x: 11, y: 64, w: 78, h: 24 },
+    attribution: { x: 11, y: 89.5, w: 78, h: 6 },
     align: 'center',
     rule: true,
   },

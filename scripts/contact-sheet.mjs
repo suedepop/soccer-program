@@ -40,8 +40,8 @@ async function json(p, method, body) {
 }
 
 const LAYOUTS = {
-  full: ['f-hero', 'f-triptych', 'f-stacked-left', 'f-collage', 'f-medallion', 'f-magazine', 'f-full-bleed'],
-  half: ['h-photos-left', 'h-photos-right', 'h-banner', 'h-split-center', 'h-feature-inset', 'h-text-top'],
+  full: ['f-hero', 'f-one-top', 'f-triptych', 'f-stacked-left', 'f-collage', 'f-medallion', 'f-magazine', 'f-full-bleed'],
+  half: ['h-photos-left', 'h-photos-right', 'h-one-left', 'h-one-right', 'h-banner', 'h-split-center', 'h-feature-inset', 'h-text-top'],
   quarter: ['q-photo-top', 'q-photo-bottom', 'q-portrait-circle', 'q-side-by-side'],
 };
 const BACKGROUNDS = [
