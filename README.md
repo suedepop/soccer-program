@@ -240,6 +240,15 @@ certificate itself.
 An account can hold as many ads as they like; `/dashboard` lists them all with status
 and an amount-due total.
 
+**A parent can delete their own ad only while it is a draft** — from the dashboard
+card or the bottom of `/ads/[id]`, behind an inline confirm. A draft is private,
+unfinished work that nobody else is counting on. From **Payment Due** onwards it is
+not: the boosters are owed the money and `printableAds` is already laying it into
+the book, and a **Cancelled** ad is the record that an order existed. So past that
+line the parent asks and the boosters act — an admin can delete any ad from the
+admin screen, which also offers *cancel* as the reversible alternative. Deleting an
+ad leaves the photos in the parent's library; only the ad and its layout go.
+
 ### The photo library
 
 Photos live on the account, not on an ad (`/photos`, capped by
@@ -712,7 +721,7 @@ node scripts/fetch-fonts.mjs                            # download woff2 + write
 node scripts/measure-fonts.mjs                          # print avgGlyph / boldRatio
 
 # With the server running:
-node scripts/smoke.mjs                                  # end-to-end check (59 assertions)
+node scripts/smoke.mjs                                  # end-to-end check (68 assertions)
 node scripts/name-fit.mjs <admin-email> <password>      # 2,300 layout x font x name combinations
 node scripts/text-fit.mjs <admin-email> <password>      # 135 message fit + orphan combinations
 node scripts/contact-sheet.mjs <admin-email> <password> # tile every layout, background, font, effect

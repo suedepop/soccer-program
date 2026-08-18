@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import AdPreview from '@/components/AdPreview';
+import DeleteAdButton from '@/components/DeleteAdButton';
 import RichText from '@/components/RichText';
 import StatusBadge from '@/components/StatusBadge';
 import SubmitAdButton from '@/components/SubmitAdButton';
@@ -164,6 +165,17 @@ export default async function AdDetailPage({ params }: { params: Promise<{ id: s
             <div style={{ color: 'var(--muted)', margin: '10px 0 4px' }}>From</div>
             <div>{ad.attribution ? <RichText source={ad.attribution} /> : '—'}</div>
           </div>
+
+          {/* Last in the column on purpose: it is the one thing on this page
+              that cannot be undone. */}
+          {ad.status === 'draft' && (
+            <div className="card card-tight">
+              <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 8 }}>
+                Changed your mind? A draft can be deleted right up until you submit it.
+              </div>
+              <DeleteAdButton adId={ad.id} playerName={ad.playerName} redirectTo="/dashboard" />
+            </div>
+          )}
         </div>
       </div>
     </div>

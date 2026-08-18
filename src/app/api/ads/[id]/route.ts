@@ -51,11 +51,24 @@ export const DELETE = handler(async (_req: Request, ctx: Ctx) => {
   const found = await ownedAd(Number(id));
   if (!found) return fail('Ad not found.', 404);
   const { ad, isAdmin } = found;
-  // A parent may not delete away a debt or a paid record. An admin may, because
-  // somebody has to be able to remove a duplicate order or an ad paid for by
-  // mistake — with the caveat that 'cancelled' keeps the record and this does
-  // not. The admin screen offers both and says which is which.
-  if (!isAdmin && ad.status === 'paid') return fail('Paid ads cannot be deleted.', 409);
+  // A parent may throw away a draft — it is their own unfinished work and
+  // nobody else is counting on it. Once submitted it stops being private: the
+  // boosters are owed the money, `printableAds` is already laying it into the
+  // book, and a cancelled ad is the record of an order that existed. So from
+  // 'submitted' onwards the parent asks and the boosters act.
+  //
+  // An admin may delete anything, because somebody has to be able to remove a
+  // duplicate order or an ad paid for by mistake — with the caveat that
+  // 'cancelled' keeps the record and this does not. The admin screen offers
+  // both and says which is which.
+  if (!isAdmin && ad.status !== 'draft') {
+    return fail(
+      ad.status === 'paid'
+        ? 'Paid ads cannot be deleted.'
+        : 'Only drafts can be deleted. Contact the boosters to call off an ad you have already submitted.',
+      409
+    );
+  }
   deleteAd(ad.id);
   return ok({ ok: true });
 });

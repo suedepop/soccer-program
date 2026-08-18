@@ -258,6 +258,76 @@ const locked = await req(`/api/ads/${qId}`, {
 });
 check('paid ad is locked from edits', locked.status === 409, `status=${locked.status}`);
 
+// 12b. a parent may delete their own draft, and nothing further along. The
+// cutoff is the whole rule: a draft is private unfinished work, but a submitted
+// ad is money owed and already being laid into the book.
+cookie = parentCookie;
+const before = await getJson('/api/photos');
+const scrap = await json('/api/ads', 'POST', { size: 'quarter' });
+await upload(scrap.id, 0, big, 'scrap.jpg');
+const delDraft = await req(`/api/ads/${scrap.id}`, { method: 'DELETE' });
+check('parent can delete their own draft', delDraft.ok, `status=${delDraft.status}`);
+const goneRes = await req(`/api/ads/${scrap.id}`, {
+  method: 'PATCH',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({}),
+});
+check('the deleted draft is gone', goneRes.status === 404, `status=${goneRes.status}`);
+// The photo was uploaded through the ad, but it lives in the library — tidying
+// up an abandoned draft must not take the picture with it.
+const after = await getJson('/api/photos');
+check(
+  'deleting an ad leaves its photos in the library',
+  after.photos.length === before.photos.length + 1,
+  `${before.photos.length} -> ${after.photos.length}`
+);
+
+const owed = await json('/api/ads', 'POST', { size: 'quarter' });
+await json(`/api/ads/${owed.id}`, 'PATCH', {
+  playerName: 'Owed Ad',
+  message: 'This one has been submitted.',
+  attribution: 'Love, QA',
+});
+await upload(owed.id, 0, big, 'owed.jpg');
+await json(`/api/ads/${owed.id}/submit`, 'POST', {});
+const delSubmitted = await req(`/api/ads/${owed.id}`, { method: 'DELETE' });
+const delSubmittedBody = await delSubmitted.json().catch(() => ({}));
+check(
+  'parent cannot delete a submitted ad',
+  delSubmitted.status === 409,
+  `status=${delSubmitted.status}`
+);
+check(
+  'the refusal points them at the boosters',
+  /boosters/i.test(delSubmittedBody.error ?? ''),
+  delSubmittedBody.error ?? ''
+);
+const delPaid = await req(`/api/ads/${qId}`, { method: 'DELETE' });
+check('parent cannot delete a paid ad', delPaid.status === 409, `status=${delPaid.status}`);
+
+// Another parent's draft is not theirs to delete — and the answer is 404, not
+// 403, so it does not confirm the ad exists.
+const stranger = await json('/api/ads', 'POST', { size: 'quarter' });
+cookie = savedCookie;
+const adminDelOwed = await req(`/api/ads/${owed.id}`, { method: 'DELETE' });
+check('admin can delete a submitted ad', adminDelOwed.ok, `status=${adminDelOwed.status}`);
+cookie = '';
+await json('/api/auth/signup', 'POST', {
+  email: `nosy${Date.now()}@test.local`,
+  password: 'password123',
+  name: 'Nosy Parent',
+});
+const delOther = await req(`/api/ads/${stranger.id}`, { method: 'DELETE' });
+check("parent cannot delete another parent's draft", delOther.status === 404, `status=${delOther.status}`);
+cookie = parentCookie;
+const strangerAlive = await req(`/api/ads/${stranger.id}`, {
+  method: 'PATCH',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({}),
+});
+check('the refused draft is still there', strangerAlive.ok, `status=${strangerAlive.status}`);
+await req(`/api/ads/${stranger.id}`, { method: 'DELETE' });
+
 // 13. print PNG at 300 DPI
 cookie = savedCookie;
 console.log('rendering PNG…');
@@ -360,6 +430,11 @@ const three = [
   await makeImage(1600, 1200, 120),
   await makeImage(400, 300, 180),
 ];
+// A new account is not an empty one: signup seeds the media-day placeholder.
+// Count what is there rather than assuming zero, so seeding one more starter
+// photo some day does not read as a broken library.
+const seeded = (await getJson('/api/photos')).photos.length;
+
 const bulk = await req('/api/photos', { method: 'POST', body: filesForm(three) });
 const bulkJson = await bulk.json();
 check('bulk upload adds several at once', bulk.ok && bulkJson.added === 3, `added=${bulkJson.added}`);
@@ -367,8 +442,8 @@ check('bulk upload adds several at once', bulk.ok && bulkJson.added === 3, `adde
 const list = await getJson('/api/photos');
 check(
   'library lists photos with a limit',
-  list.photos.length === 3 && list.limit === 100,
-  `${list.photos.length} photos, limit ${list.limit}`
+  list.photos.length === seeded + 3 && list.limit === 100,
+  `${list.photos.length} photos (${seeded} seeded + 3), limit ${list.limit}`
 );
 
 // Place one library photo into two different ads.
@@ -418,9 +493,13 @@ await json('/api/auth/signup', 'POST', {
 });
 
 const capImage = await makeImage(64, 64, 90);
-const fill = await req('/api/photos', { method: 'POST', body: filesForm(Array(98).fill(capImage)) });
+// Fill to exactly two short of the cap. Counting from the seeded placeholder
+// rather than from zero is what keeps the partial-batch arithmetic below
+// honest — see the note in the library section.
+const room = 100 - (await getJson('/api/photos')).photos.length - 2;
+const fill = await req('/api/photos', { method: 'POST', body: filesForm(Array(room).fill(capImage)) });
 const fillJson = await fill.json();
-check('large batch upload works', fillJson.added === 98, `added=${fillJson.added}`);
+check('large batch upload works', fillJson.added === room, `added=${fillJson.added} of ${room}`);
 
 // Only 2 slots left, so 5 more should add 2 and report 3 skipped rather than
 // failing the whole batch.

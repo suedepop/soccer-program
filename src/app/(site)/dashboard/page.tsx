@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import AdCanvas from '@/components/AdCanvas';
+import DeleteAdButton from '@/components/DeleteAdButton';
 import StatusBadge from '@/components/StatusBadge';
 import { currentUser } from '@/lib/auth';
 import { listAdsForUser } from '@/lib/ads';
@@ -78,6 +79,9 @@ export default async function DashboardPage() {
                   <Link className="btn btn-sm" href={`/ads/${ad.id}/edit`}>
                     {ad.status === 'draft' ? 'Continue' : 'Edit'}
                   </Link>
+                )}
+                {ad.status === 'draft' && (
+                  <DeleteAdButton adId={ad.id} playerName={ad.playerName} />
                 )}
               </div>
             </div>
