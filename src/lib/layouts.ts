@@ -170,7 +170,10 @@ const HALF: Layout[] = [
     playerName: { x: 49, y: 9, w: 47, h: 15 },
     message: { x: 49, y: 26, w: 47, h: 52 },
     attribution: { x: 49, y: 80, w: 47, h: 11 },
-    align: 'left',
+    // Centred within the text column rather than ragged against the picture.
+    // The boxes are unchanged: only the type moves inside them, so the column
+    // keeps the same gutter and the same trim margin it was drawn with.
+    align: 'center',
     rule: true,
   },
   {
@@ -182,7 +185,7 @@ const HALF: Layout[] = [
     playerName: { x: 4, y: 9, w: 47, h: 15 },
     message: { x: 4, y: 26, w: 47, h: 52 },
     attribution: { x: 4, y: 80, w: 47, h: 11 },
-    align: 'left',
+    align: 'center',
     rule: true,
   },
   {
