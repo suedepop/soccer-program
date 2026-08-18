@@ -31,8 +31,14 @@ export default function PhotoTile({
 
   return (
     <div className="photo-tile">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={photo.url} alt={photo.origName} loading="lazy" />
+      <div style={{ position: 'relative' }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={photo.url} alt={photo.origName} loading="lazy" />
+        {/* A thumbnail is too small to carry the tiled watermark legibly, so
+            the library says it in words instead. The watermark itself belongs
+            on the ad preview, where the photo is big enough to read it. */}
+        {photo.rightsManaged && <span className="rights-badge">Rights-managed</span>}
+      </div>
       <div className="photo-tile-body">
         <div className="photo-tile-name" title={photo.origName}>
           {photo.origName || 'photo'}

@@ -43,6 +43,12 @@ export const POST = handler(async (req: Request, ctx: Ctx) => {
   const files = form.getAll('files').filter((f): f is File => f instanceof File && f.size > 0);
   if (!files.length) return fail('Choose at least one image to upload.');
 
+  // Applies to the whole batch — the boosters upload a photographer's set in
+  // one go, and mixing licensed and unlicensed images in a single selection is
+  // not the shape the job comes in. This is the only route that can set it:
+  // a parent's own upload is always unmanaged.
+  const rightsManaged = form.get('rightsManaged') === '1';
+
   const room = libraryRoom(target.id);
   if (room === 0) {
     return fail(
@@ -51,7 +57,7 @@ export const POST = handler(async (req: Request, ctx: Ctx) => {
     );
   }
 
-  const result = await storePhotos(target.id, files, room);
+  const result = await storePhotos(target.id, files, room, { rightsManaged });
 
   return ok({
     ...result,

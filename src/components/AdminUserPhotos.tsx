@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import PhotoTile from '@/components/PhotoTile';
 import PhotoUploadButton from '@/components/PhotoUploadButton';
 import UploadProgressBar from '@/components/UploadProgressBar';
@@ -28,6 +28,13 @@ export default function AdminUserPhotos({
   const lib = usePhotoLibrary(basePath);
   const full = lib.photos.length >= lib.limit;
 
+  const [rightsManaged, setRightsManaged] = useState(false);
+  const { upload } = lib;
+  const send = useCallback(
+    (files: File[]) => upload(files, rightsManaged ? { rightsManaged: '1' } : undefined),
+    [upload, rightsManaged]
+  );
+
   return (
     <div className="stack">
       <div className="card">
@@ -43,7 +50,7 @@ export default function AdminUserPhotos({
           {!full && (
             <span className="only-wide">
               <PhotoUploadButton
-                onFiles={lib.upload}
+                onFiles={send}
                 busy={lib.uploading}
                 label="Add photos for them"
               />
@@ -58,13 +65,32 @@ export default function AdminUserPhotos({
             This library is full at {lib.limit} photos. Only {who} can delete one to make room.
           </div>
         ) : (
-          <PhotoUploadButton
-            onFiles={lib.upload}
-            busy={lib.uploading}
-            disabled={lib.uploading}
-            label="Add photos for them"
-            full
-          />
+          <>
+            {/* Above the drop zone, not below it: it changes what the next
+                upload becomes, so it has to be read before the files are
+                chosen rather than found afterwards. */}
+            <label className="rights-toggle">
+              <input
+                type="checkbox"
+                checked={rightsManaged}
+                onChange={(e) => setRightsManaged(e.target.checked)}
+              />
+              <span>
+                <strong>Rights-managed</strong>
+                <span className="hint">
+                  For a photographer’s licensed images. {who} sees these under a watermark while
+                  they build the ad; the file that goes to the printer has none.
+                </span>
+              </span>
+            </label>
+            <PhotoUploadButton
+              onFiles={send}
+              busy={lib.uploading}
+              disabled={lib.uploading}
+              label={rightsManaged ? 'Add rights-managed photos' : 'Add photos for them'}
+              full
+            />
+          </>
         )}
 
         <UploadProgressBar progress={lib.progress} />

@@ -529,6 +529,41 @@ the same `PhotoTile`, pointed at a different base path — the admin endpoint
 answers in the shape `/api/photos` does. The one visible difference is the
 delete button, which the admin view does not pass.
 
+### Rights-managed photos
+
+A checkbox on that upload marks the batch **rights-managed** — a school
+photographer's licensed images, typically. Such a photo is **watermarked in
+every preview and clean in every print file**: the parent can lay out the page
+and see what they are buying, and the book still prints the real picture.
+
+Only this route can set it. `files.rights_managed` defaults to 0, and a parent
+posting `rightsManaged=1` to their own `/api/photos` is ignored — the flag is
+read in the admin route alone.
+
+**The switch is one prop, and it defaults to the safe side.** `AdCanvas` draws
+the watermark whenever a slot's photo is flagged, unless it is passed `print`.
+Only `/print/ad/[id]` and `/print/program` pass it, and those two routes are the
+DOM headless Chrome screenshots — so the preview and the printer's file are the
+same drawing, differing in exactly this one overlay. A new screen that forgets
+the prop gets a watermark, which is the harmless way to be wrong; the reverse
+default would put a watermark in the book the first time somebody added a page.
+
+`scripts/smoke.mjs` pins that down the only way worth trusting: it builds two
+ads identical but for the flag and asserts their 300 DPI PNGs are **byte for
+byte the same file**.
+
+The watermark is a tiled SVG background drawn over the photo inside its slot, so
+it follows a circular crop or a full-bleed photo without either being
+special-cased, and it scales with the ad. Library thumbnails are too small to
+carry it legibly and get a *Rights-managed* badge instead.
+
+**What this is and is not.** It is a deterrent against the wrong picture being
+lifted out of a preview — not access control. The underlying file is still
+served whole at `/api/files/[id]` to the parent who owns it and to an admin, so
+anyone determined enough to open the network tab can fetch it unmarked. Making
+that impossible means watermarking the bytes the endpoint serves and keeping a
+clean copy for the print path, which is a bigger change than this one.
+
 ### Resetting a parent's password
 
 There is no email on this site to send a reset link through, so the admin issues
@@ -749,7 +784,7 @@ node scripts/fetch-fonts.mjs                            # download woff2 + write
 node scripts/measure-fonts.mjs                          # print avgGlyph / boldRatio
 
 # With the server running:
-node scripts/smoke.mjs                                  # end-to-end check (75 assertions)
+node scripts/smoke.mjs                                  # end-to-end check (82 assertions)
 node scripts/name-fit.mjs <admin-email> <password>      # 2,300 layout x font x name combinations
 node scripts/text-fit.mjs <admin-email> <password>      # 135 message fit + orphan combinations
 node scripts/contact-sheet.mjs <admin-email> <password> # tile every layout, background, font, effect

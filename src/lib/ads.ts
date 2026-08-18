@@ -56,13 +56,14 @@ interface PhotoRow {
   width: number;
   height: number;
   orig_name: string;
+  rights_managed: number;
 }
 
 function photosFor(adId: number): PhotoRef[] {
   const rows = db()
     .prepare(
       `SELECT p.slot, p.file_id, p.focal_x, p.focal_y, p.zoom,
-              f.width, f.height, f.orig_name
+              f.width, f.height, f.orig_name, f.rights_managed
          FROM ad_photos p JOIN files f ON f.id = p.file_id
         WHERE p.ad_id = ? ORDER BY p.slot`
     )
@@ -78,6 +79,7 @@ function photosFor(adId: number): PhotoRef[] {
     focalX: r.focal_x,
     focalY: r.focal_y,
     zoom: r.zoom ?? 1,
+    rightsManaged: !!r.rights_managed,
   }));
 }
 

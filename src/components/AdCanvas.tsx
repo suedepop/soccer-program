@@ -26,12 +26,44 @@ export interface AdCanvasProps {
     >;
   /** 1 = actual print size on a 96dpi screen. Preview uses e.g. 0.45. */
   scale?: number;
+  /**
+   * This drawing *is* the file that goes to the printer, not a preview of it.
+   *
+   * The only thing it changes is the rights-managed watermark, which every
+   * preview carries and no print render may. It defaults to false on purpose:
+   * a new screen that forgets to say what it is gets the watermark, which is
+   * the harmless way round. Only the two /print routes pass it.
+   */
+  print?: boolean;
   /** Render dashed drop targets for empty slots (editor only). */
   showEmptySlots?: boolean;
   /** Overlay injected into each photo slot — used by the editor for controls. */
   slotOverlay?: (slotIndex: number, slot: PhotoSlot) => ReactNode;
   className?: string;
 }
+
+/**
+ * One tile of the rights-managed watermark, as an SVG data URI.
+ *
+ * A background-image rather than DOM text because it then sits inside the
+ * slot's own clip: a circular crop or a photo bled to the trim edge gets the
+ * right shape without either being special-cased. `sans-serif` rather than the
+ * ad's own face — this is chrome, not part of the design, and a
+ * background-image cannot reach the webfonts anyway.
+ *
+ * White with a dark outline so it reads on a bright jersey and a night match
+ * alike, and light enough to leave the photo judgeable underneath.
+ */
+const WATERMARK_TILE =
+  'data:image/svg+xml,' +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="120">' +
+      '<text x="100" y="60" transform="rotate(-30 100 60)" text-anchor="middle"' +
+      ' dominant-baseline="middle" font-family="Arial, Helvetica, sans-serif"' +
+      ' font-size="17" font-weight="700" letter-spacing="1.5"' +
+      ' fill="rgba(255,255,255,0.62)" stroke="rgba(0,0,0,0.30)" stroke-width="0.7"' +
+      '>RIGHTS MANAGED</text></svg>'
+  );
 
 function pct(box: Box): CSSProperties {
   return {
@@ -60,6 +92,7 @@ function effectiveGlyph(font: AdFont, source: string): number {
 export default function AdCanvas({
   ad,
   scale = 1,
+  print = false,
   showEmptySlots = false,
   slotOverlay,
   className,
@@ -256,6 +289,22 @@ export default function AdCanvas({
                   Photo {i + 1}
                 </span>
               ) : null}
+              {/* Over the photo and under the editor's controls. Sized from the
+                  canvas width, so it tiles identically at every ad size and
+                  every preview scale. */}
+              {photo?.rightsManaged && !print && (
+                <div
+                  data-watermark
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    pointerEvents: 'none',
+                    backgroundImage: `url("${WATERMARK_TILE}")`,
+                    backgroundRepeat: 'repeat',
+                    backgroundSize: `${W * 0.245}px ${W * 0.147}px`,
+                  }}
+                />
+              )}
               {slotOverlay?.(i, slot)}
             </div>
           );

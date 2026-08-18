@@ -51,6 +51,10 @@ export const POST = handler(async (req: Request, ctx: Ctx) => {
         width: row.width,
         height: row.height,
         origName: row.orig_name,
+        // The editor draws the placed photo from this reply rather than
+        // reloading the ad, so the flag has to travel with it or a licensed
+        // photo would sit unwatermarked until the next page load.
+        rightsManaged: !!row.rights_managed,
       },
     });
   }

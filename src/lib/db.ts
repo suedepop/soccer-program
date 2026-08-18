@@ -158,6 +158,10 @@ function migrate(conn: Database.Database) {
   addColumn(conn, 'users', 'placeholder_seeded', 'INTEGER NOT NULL DEFAULT 0');
   addColumn(conn, 'ad_photos', 'zoom', 'REAL NOT NULL DEFAULT 1');
   addColumn(conn, 'ads', 'text_scale', 'REAL NOT NULL DEFAULT 1');
+  // A licensed photo — a school photographer's, usually. Previews carry a
+  // watermark; the file that goes to the printer does not. Only an admin can
+  // set it, so defaulting to 0 is right for every photo a parent uploads.
+  addColumn(conn, 'files', 'rights_managed', 'INTEGER NOT NULL DEFAULT 0');
 }
 
 /** SQLite has no ADD COLUMN IF NOT EXISTS, so check the table first. */

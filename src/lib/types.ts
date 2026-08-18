@@ -12,6 +12,11 @@ export interface PhotoRef {
   focalY: number;
   /** 1 fills the slot exactly; larger crops in. */
   zoom: number;
+  /**
+   * Licensed image. Every preview draws a watermark over it; the print render
+   * does not — see the `print` prop on AdCanvas.
+   */
+  rightsManaged: boolean;
 }
 
 /** Everything the canvas needs to draw an ad. Safe to send to the client. */

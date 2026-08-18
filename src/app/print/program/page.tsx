@@ -57,7 +57,9 @@ export default async function PrintProgramPage({
                 overflow: 'hidden',
               }}
             >
-              <AdCanvas ad={p.ad} scale={1} />
+              {/* Same as /print/ad: this is the book itself, not a preview of
+                  it, so no watermark goes on a licensed photo. */}
+              <AdCanvas ad={p.ad} scale={1} print />
             </div>
           ))}
         </div>

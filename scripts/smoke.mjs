@@ -642,6 +642,87 @@ check(
 );
 
 // ---------------------------------------------------------------------------
+// 19b. Rights-managed photos: watermarked on screen, clean in the print file
+// ---------------------------------------------------------------------------
+cookie = '';
+const rmParent = await json('/api/auth/signup', 'POST', {
+  email: `rights${Date.now()}@test.local`,
+  password: 'password123',
+  name: 'Rights Parent',
+});
+const rmParentCookie = cookie;
+
+// The same image twice, flagged and not, so the two ads below differ in the
+// flag and nothing else.
+cookie = savedCookie;
+const rmPhoto = await makeImage(1800, 1400, 95);
+async function adminAdd(name, flagged) {
+  const form = new FormData();
+  form.append('files', new File([rmPhoto], name, { type: 'image/jpeg' }));
+  if (flagged) form.set('rightsManaged', '1');
+  const r = await req(`/api/admin/users/${rmParent.id}/photos`, { method: 'POST', body: form });
+  const j = await r.json();
+  if (!r.ok) throw new Error(`rights upload ${name}: ${r.status} ${JSON.stringify(j)}`);
+  return j.photos.find((p) => p.origName === name);
+}
+const rmManaged = await adminAdd('licensed.jpg', true);
+const rmPlain = await adminAdd('ordinary.jpg', false);
+check('admin can flag an upload rights-managed', rmManaged.rightsManaged === true, `${rmManaged.rightsManaged}`);
+check('an unflagged admin upload is not managed', rmPlain.rightsManaged === false, `${rmPlain.rightsManaged}`);
+
+// Only the admin route honours the flag. A parent sending the same field on
+// their own upload must not be able to mark their photo licensed.
+cookie = rmParentCookie;
+const ownForm = new FormData();
+ownForm.append('files', new File([rmPhoto], 'parents-own.jpg', { type: 'image/jpeg' }));
+ownForm.set('rightsManaged', '1');
+const ownRes = await req('/api/photos', { method: 'POST', body: ownForm });
+const ownJson = await ownRes.json();
+const parentsOwn = ownJson.photos.find((p) => p.origName === 'parents-own.jpg');
+check(
+  'a parent cannot flag their own upload',
+  parentsOwn && parentsOwn.rightsManaged === false,
+  `rightsManaged=${parentsOwn?.rightsManaged}`
+);
+
+async function rightsAd(fileId) {
+  const { id } = await json('/api/ads', 'POST', { size: 'half' });
+  await json(`/api/ads/${id}`, 'PATCH', {
+    layoutId: 'h-one-left',
+    backgroundId: 'classic-white',
+    playerName: 'Rights Parent',
+    message: 'Proud of you.',
+    attribution: 'Love, Mom',
+  });
+  await json(`/api/ads/${id}/photos`, 'POST', { slot: 0, fileId });
+  return id;
+}
+const rmAdManaged = await rightsAd(rmManaged.id);
+const rmAdPlain = await rightsAd(rmPlain.id);
+
+// The invariant this whole feature turns on. Two ads identical but for the
+// flag must produce the same print file: a watermark that reached the printer
+// would be a ruined page nobody sees until it is bound.
+cookie = savedCookie;
+console.log('rendering the rights-managed pair…');
+const rmPngA = Buffer.from(await (await req(`/api/admin/ads/${rmAdManaged}/png`)).arrayBuffer());
+const rmPngB = Buffer.from(await (await req(`/api/admin/ads/${rmAdPlain}/png`)).arrayBuffer());
+check(
+  'a rights-managed ad prints identically to an unmanaged one',
+  rmPngA.equals(rmPngB),
+  `${rmPngA.length} vs ${rmPngB.length} bytes`
+);
+
+// And the preview it is meant to protect does carry it. The print page and the
+// ad page are the same component, so this is the pair that proves the switch.
+const previewHtml = await (await req(`/print/ad/${rmAdManaged}`)).text();
+check('the print page carries no watermark', !previewHtml.includes('data-watermark'), '/print/ad');
+const adPageHtml = await (await req(`/ads/${rmAdManaged}`)).text();
+check('the ad page preview does carry one', adPageHtml.includes('data-watermark'), '/ads/[id]');
+const plainPageHtml = await (await req(`/ads/${rmAdPlain}`)).text();
+check('an unmanaged photo is never watermarked', !plainPageHtml.includes('data-watermark'), '/ads/[id]');
+
+// ---------------------------------------------------------------------------
 // 20. Imposition: pair halves with quarters, and keep lookalikes apart
 // ---------------------------------------------------------------------------
 cookie = '';

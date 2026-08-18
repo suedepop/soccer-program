@@ -20,8 +20,12 @@ export interface LibraryState {
   error: string | null;
   uploading: boolean;
   progress: UploadProgress | null;
-  /** Uploads files and returns how many actually landed. */
-  upload: (files: File[]) => Promise<number>;
+  /**
+   * Uploads files and returns how many actually landed. `fields` are extra
+   * form entries sent alongside — the admin screen uses it for the
+   * rights-managed flag, which only its own endpoint honours.
+   */
+  upload: (files: File[], fields?: Record<string, string>) => Promise<number>;
   remove: (id: number) => Promise<boolean>;
   reload: () => Promise<void>;
   setError: (message: string | null) => void;
@@ -62,7 +66,7 @@ export function usePhotoLibrary(basePath = '/api/photos'): LibraryState {
     reload();
   }, [reload]);
 
-  const upload = useCallback(async (files: File[]) => {
+  const upload = useCallback(async (files: File[], fields?: Record<string, string>) => {
     if (!files.length) return 0;
     setUploading(true);
     setProgress({ files: files.length, fraction: 0, processing: false });
@@ -70,6 +74,7 @@ export function usePhotoLibrary(basePath = '/api/photos'): LibraryState {
 
     const form = new FormData();
     for (const f of files) form.append('files', f);
+    for (const [k, v] of Object.entries(fields ?? {})) form.set(k, v);
 
     /**
      * XMLHttpRequest rather than fetch, for the one thing it still does better:

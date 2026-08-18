@@ -1036,6 +1036,43 @@ a.chip {
   margin-top: 2px;
 }
 
+/* Rights-managed: the flag on a library thumbnail, and the checkbox that sets
+   it on the way in. The watermark itself is drawn in AdCanvas, not here — it
+   has to scale with the ad and stay inside the photo slot's own clip. */
+.rights-badge {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+}
+.rights-toggle {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 400;
+}
+.rights-toggle input {
+  width: auto;
+  margin: 2px 0 0;
+  flex: 0 0 auto;
+}
+.rights-toggle .hint {
+  display: block;
+  margin-top: 2px;
+}
+
 /* A library at a glance on the admin's overview: one scrolling row of
    thumbnails per account, rather than a grid per account that would push the
    next family off the screen. */

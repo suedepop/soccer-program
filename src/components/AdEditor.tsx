@@ -220,6 +220,7 @@ export default function AdEditor({ initialAd }: { initialAd: AdView }) {
         focalX: 0.5,
         focalY: 0.5,
         zoom: 1,
+        rightsManaged: !!p.rightsManaged,
       };
       setAd((prev) => ({
         ...prev,

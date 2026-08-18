@@ -23,7 +23,9 @@ export default async function PrintAdPage({ params }: { params: Promise<{ id: st
         overflow: 'hidden',
       }}
     >
-      <AdCanvas ad={ad} scale={1} />
+      {/* `print` is what drops the rights-managed watermark: this DOM is
+          screenshotted straight to the printer's file. */}
+      <AdCanvas ad={ad} scale={1} print />
     </div>
   );
 }

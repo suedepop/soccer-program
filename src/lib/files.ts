@@ -19,11 +19,25 @@ export interface StoredFile {
   mime: string;
   origName: string;
   bytes: number;
+  rightsManaged: boolean;
 }
 
 export class UploadError extends Error {}
 
-export async function storeUpload(userId: number, file: File): Promise<StoredFile> {
+/**
+ * Extras the caller may set on a stored file. Only ever reached from the admin
+ * routes — a parent's upload takes the defaults.
+ */
+export interface StoreOptions {
+  /** Licensed image: previewed under a watermark, printed without one. */
+  rightsManaged?: boolean;
+}
+
+export async function storeUpload(
+  userId: number,
+  file: File,
+  opts: StoreOptions = {}
+): Promise<StoredFile> {
   if (file.size > MAX_BYTES) {
     throw new UploadError('That image is larger than 25 MB. Please pick a smaller file.');
   }
@@ -70,8 +84,8 @@ export async function storeUpload(userId: number, file: File): Promise<StoredFil
   const mime = keepPng ? 'image/png' : 'image/jpeg';
   const info = db()
     .prepare(
-      `INSERT INTO files (user_id, stored_name, orig_name, mime, width, height, bytes)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO files (user_id, stored_name, orig_name, mime, width, height, bytes, rights_managed)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
       userId,
@@ -80,7 +94,8 @@ export async function storeUpload(userId: number, file: File): Promise<StoredFil
       mime,
       finalMeta.width ?? 0,
       finalMeta.height ?? 0,
-      buffer.byteLength
+      buffer.byteLength,
+      opts.rightsManaged ? 1 : 0
     );
 
   return {
@@ -90,6 +105,7 @@ export async function storeUpload(userId: number, file: File): Promise<StoredFil
     mime,
     origName: file.name,
     bytes: buffer.byteLength,
+    rightsManaged: !!opts.rightsManaged,
   };
 }
 
@@ -110,14 +126,15 @@ export function libraryRoom(userId: number): number {
 export async function storePhotos(
   userId: number,
   files: File[],
-  room: number
+  room: number,
+  opts: StoreOptions = {}
 ): Promise<{ added: number; skipped: number; errors: string[] }> {
   const errors: string[] = [];
   let added = 0;
 
   for (const file of files.slice(0, room)) {
     try {
-      await storeUpload(userId, file);
+      await storeUpload(userId, file, opts);
       added++;
     } catch (err) {
       if (err instanceof UploadError) {
@@ -140,6 +157,8 @@ export interface LibraryPhoto {
   origName: string;
   bytes: number;
   createdAt: string;
+  /** Licensed image: shown under a watermark, printed without one. */
+  rightsManaged: boolean;
   /** Ads currently placing this photo. Deleting is blocked while non-empty. */
   usedBy: PhotoUsage[];
 }
@@ -161,7 +180,7 @@ export function countPhotos(userId: number): number {
 export function listPhotos(userId: number): LibraryPhoto[] {
   const rows = db()
     .prepare(
-      `SELECT id, orig_name, width, height, bytes, created_at
+      `SELECT id, orig_name, width, height, bytes, created_at, rights_managed
          FROM files WHERE user_id = ? ORDER BY created_at DESC, id DESC`
     )
     .all(userId) as {
@@ -171,6 +190,7 @@ export function listPhotos(userId: number): LibraryPhoto[] {
     height: number;
     bytes: number;
     created_at: string;
+    rights_managed: number;
   }[];
 
   // One query for every placement, rather than one per photo.
@@ -204,6 +224,7 @@ export function listPhotos(userId: number): LibraryPhoto[] {
     origName: r.orig_name,
     bytes: r.bytes,
     createdAt: r.created_at,
+    rightsManaged: !!r.rights_managed,
     usedBy: byFile.get(r.id) ?? [],
   }));
 }
@@ -246,6 +267,7 @@ export interface FileRow {
   width: number;
   height: number;
   bytes: number;
+  rights_managed: number;
 }
 
 export function getFileRow(id: number): FileRow | null {
