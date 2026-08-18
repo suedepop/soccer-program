@@ -514,12 +514,9 @@ cookie = savedCookie;
 const gift = await req(adminLibPath, { method: 'POST', body: filesForm([await makeImage(2000, 1500, 175)]) });
 const giftJson = await gift.json();
 check('admin can add a photo to a parent library', gift.ok && giftJson.added === 1, `added=${giftJson.added}`);
-// The route exports GET and POST only, so the framework answers 405 — an admin
-// has no way to remove a photo from somebody else's library.
-const noDelete = await req(adminLibPath, { method: 'DELETE' });
-check('the admin library API has no delete', noDelete.status === 405, `status=${noDelete.status}`);
 const noSuchAccount = await req('/api/admin/users/999999/photos');
 check('admin library API 404s on an unknown account', noSuchAccount.status === 404, `status=${noSuchAccount.status}`);
+
 
 cookie = libCookie;
 const withGift = await getJson('/api/photos');
@@ -575,6 +572,48 @@ check(
   fromTheirLibrary.ok,
   `status=${fromTheirLibrary.status}`
 );
+
+// An admin can also take one out — but not one an ad still places, because
+// ad_photos cascades and it would vanish out of that ad unannounced. The
+// refusal names the ad so the admin can go and clear it.
+const spareForAdmin = (await getJson(adminLibPath)).photos.find((p) => p.usedBy.length === 0);
+const adminDel = await req(`${adminLibPath}/${spareForAdmin.id}`, { method: 'DELETE' });
+check('admin can delete an unused photo from a parent library', adminDel.ok, `status=${adminDel.status}`);
+const afterAdminDel = await getJson(adminLibPath);
+check(
+  'and it is gone from the owner’s library',
+  !afterAdminDel.photos.some((p) => p.id === spareForAdmin.id),
+  `${afterAdminDel.photos.length} left`
+);
+
+const inUseForAdmin = (await getJson(adminLibPath)).photos.find((p) => p.usedBy.length > 0);
+if (inUseForAdmin) {
+  const refused = await req(`${adminLibPath}/${inUseForAdmin.id}`, { method: 'DELETE' });
+  const refusedBody = await refused.json().catch(() => ({}));
+  check('admin cannot delete a photo an ad still uses', refused.status === 409, `status=${refused.status}`);
+  check(
+    'the refusal names the ad to clear first',
+    /still used by/.test(refusedBody.error ?? ''),
+    refusedBody.error ?? ''
+  );
+  const survived = await getJson(adminLibPath);
+  check(
+    'the refused photo is still there',
+    survived.photos.some((p) => p.id === inUseForAdmin.id)
+  );
+} else {
+  check('an in-use photo was available to test the refusal', false, 'none in use');
+}
+
+// A parent must not reach the admin delete for anyone, including themselves.
+cookie = libCookie;
+const parentViaAdmin = await req(`${adminLibPath}/${inUseForAdmin?.id ?? 1}`, { method: 'DELETE' });
+check(
+  'a parent cannot use the admin delete',
+  parentViaAdmin.status === 403,
+  `status=${parentViaAdmin.status}`
+);
+cookie = savedCookie;
 
 // ---------------------------------------------------------------------------
 // 18. The 100-photo cap, including partial batches

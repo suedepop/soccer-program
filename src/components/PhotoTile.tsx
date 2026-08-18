@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import type { LibraryPhoto } from '@/lib/files';
 
 /** Rough guide before a slot is known: how big a photo is in general terms. */
@@ -16,16 +17,23 @@ export function sizeNote(width: number, height: number) {
  *
  * Shared by the parent's own library and the boosters' view of it, so the two
  * cannot drift into disagreeing about what a photo is or where it is used.
- * Without `onDelete` the tile is read-only — which is the admin's view, since
- * an admin may add to a library but not empty one.
+ * Without `onDelete` the tile is read-only; both libraries pass one.
+ *
+ * `confirmDelete` puts a step in front of it. The owner clicking Delete on
+ * their own photo is unremarkable; an admin doing it to somebody else's is
+ * worth a second's pause.
  */
 export default function PhotoTile({
   photo,
   onDelete,
+  confirmDelete = false,
 }: {
   photo: LibraryPhoto;
   onDelete?: (id: number) => void;
+  /** Ask before deleting, and say whose photo it is. */
+  confirmDelete?: boolean;
 }) {
+  const [confirming, setConfirming] = useState(false);
   const note = sizeNote(photo.width, photo.height);
   const inUse = photo.usedBy.length > 0;
 
@@ -57,15 +65,28 @@ export default function PhotoTile({
             ))}
           </div>
         ) : (
-          onDelete && (
+          onDelete &&
+          (confirming ? (
+            <div className="stack" style={{ gap: 4, marginTop: 6 }}>
+              <div className="photo-tile-meta">Delete this photo for good?</div>
+              <div className="row" style={{ gap: 4 }}>
+                <button className="btn btn-sm btn-danger" onClick={() => onDelete(photo.id)}>
+                  Delete
+                </button>
+                <button className="btn btn-sm btn-secondary" onClick={() => setConfirming(false)}>
+                  Keep
+                </button>
+              </div>
+            </div>
+          ) : (
             <button
               className="btn btn-sm btn-danger"
               style={{ marginTop: 6 }}
-              onClick={() => onDelete(photo.id)}
+              onClick={() => (confirmDelete ? setConfirming(true) : onDelete(photo.id))}
             >
               Delete
             </button>
-          )
+          ))
         )}
       </div>
     </div>

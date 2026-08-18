@@ -78,7 +78,7 @@ export default async function AdminPhotosPage() {
 
       <div className="hint" style={{ marginTop: 10 }}>
         You can add photos to any of these — useful when a parent sends the boosters their
-        pictures instead of uploading them. Deleting stays with the account that owns them.
+        pictures instead of uploading them — and remove one, as long as no ad is still using it.
       </div>
     </>
   );

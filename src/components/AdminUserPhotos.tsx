@@ -7,13 +7,14 @@ import UploadProgressBar from '@/components/UploadProgressBar';
 import { usePhotoLibrary } from '@/components/usePhotoLibrary';
 
 /**
- * One parent's library, from the boosters' side: everything they have, plus a
- * way to put more in.
+ * One parent's library, from the boosters' side: everything they have, with a
+ * way to add and to remove.
  *
- * There is no delete here on purpose. Adding a photo to somebody's library is
- * help; removing one is destroying a parent's own material, and the owner is
- * the one who can see what they still mean to use. The API agrees — the admin
- * endpoint has no DELETE at all, so this is not a UI-only restraint.
+ * Deleting somebody else's material is a real thing to hand out, so the tile
+ * asks before it does it and the API keeps the guard the owner's own route has:
+ * a photo an ad still places cannot be removed, because `ad_photos` cascades
+ * and it would come out of that ad silently. The refusal names the ads, which
+ * an admin can go and clear themselves.
  */
 export default function AdminUserPhotos({
   userId,
@@ -44,7 +45,8 @@ export default function AdminUserPhotos({
               {lib.photos.length} of {lib.limit} photos
             </strong>
             <div className="hint" style={{ marginTop: 2 }}>
-              Anything you add lands in {who}’s library, theirs to place into an ad or delete.
+              This is {who}’s own library — anything you add here is theirs to use, and anything
+              you delete is gone from it.
             </div>
           </div>
           {!full && (
@@ -62,7 +64,8 @@ export default function AdminUserPhotos({
 
         {full ? (
           <div className="notice notice-warn">
-            This library is full at {lib.limit} photos. Only {who} can delete one to make room.
+            This library is full at {lib.limit} photos. Delete one below, or ask {who} to, before
+            anything else will fit.
           </div>
         ) : (
           <>
@@ -109,7 +112,7 @@ export default function AdminUserPhotos({
       ) : (
         <div className="photo-grid">
           {lib.photos.map((photo) => (
-            <PhotoTile key={photo.id} photo={photo} />
+            <PhotoTile key={photo.id} photo={photo} onDelete={lib.remove} confirmDelete />
           ))}
         </div>
       )}

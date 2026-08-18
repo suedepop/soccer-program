@@ -38,8 +38,8 @@ export interface LibraryState {
  * same set — uploading from inside an ad puts the photo in the library too.
  *
  * `basePath` defaults to the signed-in parent's own library. The admin screens
- * point it at `/api/admin/users/<id>/photos`, which answers in the same shape;
- * that endpoint has no DELETE, so callers using it must not offer `remove`.
+ * point it at `/api/admin/users/<id>/photos`, which answers in the same shape
+ * and supports the same operations, so `remove` works under either.
  */
 export function usePhotoLibrary(basePath = '/api/photos'): LibraryState {
   const [photos, setPhotos] = useState<LibraryPhoto[]>([]);
@@ -130,11 +130,12 @@ export function usePhotoLibrary(basePath = '/api/photos'): LibraryState {
     return (json.added as number) ?? 0;
   }, [basePath]);
 
-  // Deleting is always the owner's own route: an admin can add to a library but
-  // not clear one out, so there is no admin equivalent to point this at.
+  // `${basePath}/${id}` is the photo under either library: /api/photos/7 for the
+  // owner, /api/admin/users/3/photos/7 for an admin. Both refuse a photo an ad
+  // still places and say which ads to clear.
   const remove = useCallback(async (id: number) => {
     setError(null);
-    const res = await fetch(`/api/photos/${id}`, { method: 'DELETE' });
+    const res = await fetch(`${basePath}/${id}`, { method: 'DELETE' });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) {
       setError(json.error ?? 'Could not delete that photo.');
@@ -142,7 +143,7 @@ export function usePhotoLibrary(basePath = '/api/photos'): LibraryState {
     }
     setPhotos((prev) => prev.filter((p) => p.id !== id));
     return true;
-  }, []);
+  }, [basePath]);
 
   return { photos, limit, loading, error, uploading, progress, upload, remove, reload, setError };
 }

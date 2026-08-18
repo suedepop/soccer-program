@@ -548,12 +548,16 @@ media-day pictures instead of uploading them, and for the one who cannot work
 out the upload over the phone.
 
 A photo added this way is an ordinary library photo belonging to that account:
-theirs to place into any ad, and theirs to delete. Three rules shape it:
+theirs to place into any ad, and theirs to delete as well. Three rules shape
+this screen:
 
-- **The admin can add but not delete.** `/api/admin/users/[id]/photos` has a GET
-  and a POST and no DELETE, so this is not a UI-only restraint. Adding to
-  somebody's library is help; clearing one out is destroying a parent's own
-  material, and only the owner can see what they still mean to use.
+- **The admin can delete too, but not a photo an ad still uses.**
+  `DELETE /api/admin/users/[id]/photos/[fileId]` mirrors the owner's own route,
+  refusal and all: `ad_photos.file_id` cascades, so removing a placed photo
+  would tear it out of that ad with no warning — somebody else's ad, possibly
+  paid for and already laid into the book. The answer names the ads to clear
+  first, which an admin can go and do themselves. The tile asks before it
+  deletes, because doing this to another person's material deserves the pause.
 - **The cap belongs to the account, not the uploader.** A helpful admin cannot
   fill a library past `MAX_LIBRARY_PHOTOS` and leave its owner unable to add
   anything of their own; past the cap the upload is refused and names whose
@@ -563,8 +567,9 @@ theirs to place into any ad, and theirs to delete. Three rules shape it:
 
 The browser drives both libraries through the same `usePhotoLibrary` hook and
 the same `PhotoTile`, pointed at a different base path — the admin endpoint
-answers in the shape `/api/photos` does. The one visible difference is the
-delete button, which the admin view does not pass.
+answers in the shape `/api/photos` does, and `${basePath}/${id}` is the photo
+under either one. The only difference on screen is the confirm step in front of
+the admin's delete.
 
 **The ad editor uses it too.** An ad may only hold photos belonging to *its
 owner* — `/api/ads/[id]/photos` checks `row.user_id !== ad.userId` and refuses
@@ -829,7 +834,7 @@ node scripts/fetch-fonts.mjs                            # download woff2 + write
 node scripts/measure-fonts.mjs                          # print avgGlyph / boldRatio
 
 # With the server running:
-node scripts/smoke.mjs                                  # end-to-end check (87 assertions)
+node scripts/smoke.mjs                                  # end-to-end check (92 assertions)
 node scripts/name-fit.mjs <admin-email> <password>      # 2,645 layout x font x name combinations
 node scripts/text-fit.mjs <admin-email> <password>      # 135 message fit + orphan combinations
 node scripts/contact-sheet.mjs <admin-email> <password> # tile every layout, background, font, effect
