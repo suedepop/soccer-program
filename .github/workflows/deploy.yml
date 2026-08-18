@@ -110,6 +110,32 @@ jobs:
             echo "APP_IMAGE=$IMAGE" >> .env
           fi
 
+          # Reclaim old images BEFORE pulling, because the pull is what runs out
+          # of room: extracting the Chrome layer onto a full disk fails with a
+          # containerd error that says nothing about why.
+          #
+          # -a is the whole point. Every image this workflow pulls is tagged
+          # :<sha>, so none of them is ever *dangling*, and the plain
+          # `docker image prune -f` this used to run reclaimed precisely nothing
+          # while each deploy added another Chrome-sized image. Docker refuses to
+          # delete an image any container still references, so the running app
+          # and Caddy are safe; rollback re-pulls from GHCR rather than relying
+          # on a local copy, so keeping old ones bought nothing.
+          echo "Disk before: $(df -h / | awk 'NR==2 {print $4" free of "$2}')"
+          docker image prune -af >/dev/null || true
+
+          free_mb=$(df -Pm / | awk 'NR==2 {print $4}')
+          echo "Disk after prune: ${free_mb} MB free"
+          # The image is a couple of GB. Stopping here with the numbers on
+          # screen beats a half-extracted layer and a cryptic snapshotter error.
+          if [ "$free_mb" -lt 3000 ]; then
+            echo "Only ${free_mb} MB free on / — refusing to pull." >&2
+            df -h / >&2
+            docker system df >&2
+            du -sh /srv/soccer/data 2>/dev/null >&2 || true
+            exit 1
+          fi
+
           docker compose pull
           docker compose up -d --remove-orphans
 
@@ -117,13 +143,17 @@ jobs:
           for i in $(seq 1 45); do
             if curl -fsS --max-time 5 -o /dev/null http://127.0.0.1:3000/api/health; then
               echo "healthy after ${i} attempt(s)"
-              docker image prune -f >/dev/null
+              # The image just replaced is now unreferenced; drop it rather than
+              # leaving it for the next deploy to trip over.
+              docker image prune -af >/dev/null || true
+              echo "Disk after: $(df -h / | awk 'NR==2 {print $4" free of "$2}')"
               exit 0
             fi
             sleep 2
           done
 
-          echo "The new container never became healthy. Recent logs:" >&2
+          echo "The new container never became healthy. Disk, then recent logs:" >&2
+          df -h / >&2
           docker compose logs --tail 60 app >&2
           exit 1
           REMOTE

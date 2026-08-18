@@ -28,6 +28,14 @@ services:
     # One container, always. Two would mean two writers on one SQLite file.
     deploy:
       replicas: 1
+    # Docker's default json-file driver never rotates, so a container that runs
+    # for a season writes a log file with no ceiling. On a 30 GB disk that is a
+    # slow-motion outage; 30 MB a service is plenty to debug a bad deploy with.
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
 
   caddy:
     image: caddy:2-alpine
@@ -45,6 +53,11 @@ services:
       - caddy-config:/config
     depends_on:
       - app
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
 
 volumes:
   caddy-data:

@@ -73,6 +73,31 @@ Locally, `.env.local` holds both, and `npm run dev` and the VS Code debugger rea
 the same file. Don't set `SESSION_SECRET` in `launch.json`: env vars there win
 over `.env.local`, so the two ways of starting the app would sign each other out.
 
+### When the VM runs out of disk
+
+The OS disk is 30 GB and holds every Docker image ever pulled. A deploy that
+dies in `docker compose pull` with
+
+```
+failed to extract layer ... : no space left on device
+```
+
+is that, and the deploy step now prevents it: it prunes old images before
+pulling and refuses to pull below 3 GB free. If you need to clear it by hand:
+
+```bash
+ssh azureuser@<host> 'df -h /; docker system df'
+ssh azureuser@<host> 'docker image prune -af'      # keeps whatever a container uses
+```
+
+`docker image prune -af` is safe here — Docker will not remove an image that a
+container still references, so the running app and Caddy are untouched. Never
+add `--volumes` to a prune on this box: `caddy-data` holds the Let's Encrypt
+certificate and account key.
+
+Container logs are the other thing that grows without a ceiling; both services
+now cap theirs at 3 × 10 MB in `deploy/docker-compose.yml`.
+
 ### Backing up
 
 Everything that matters is in `DATA_DIR` — the SQLite database and every uploaded
@@ -170,8 +195,19 @@ the first build.
   someone once edited over SSH.
 - Signs the VM in to GHCR with the workflow's own short-lived token, over stdin,
   and signs it out afterwards. No registry password lives on the box.
+- **Reclaims old images before pulling, with `docker image prune -af`.** The
+  `-a` is load-bearing: every image is tagged `:<sha>`, so none is ever
+  *dangling*, and the plain `docker image prune -f` this used to run reclaimed
+  nothing while each deploy added another Chrome-sized image to a 30 GB disk.
+  That eventually filled it, and the pull died mid-extraction with a containerd
+  error that named a snapshot path and never said "disk full". Docker will not
+  delete an image a container references, so the running app and Caddy survive;
+  rollback re-pulls from GHCR, so nothing needed the local copies. The step now
+  prints free space before and after, and refuses to pull below 3 GB rather
+  than half-extracting a layer.
 - Waits for `/api/health` — which opens the database, not just the port — before
-  reporting success, and prints the container's logs if it never answers.
+  reporting success, and prints the disk and the container's logs if it never
+  answers.
 - Runs one deploy at a time (`concurrency`), because the app container is
   stopped and replaced, and two of those overlapping would mean two writers on
   one SQLite file.
