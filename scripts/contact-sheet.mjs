@@ -40,9 +40,9 @@ async function json(p, method, body) {
 }
 
 const LAYOUTS = {
-  full: ['f-hero', 'f-one-top', 'f-triptych', 'f-stacked-left', 'f-collage', 'f-medallion', 'f-magazine', 'f-full-bleed'],
+  full: ['f-hero', 'f-one-top', 'f-one-top-square', 'f-triptych', 'f-stacked-left', 'f-collage', 'f-medallion', 'f-magazine', 'f-full-bleed'],
   half: ['h-photos-left', 'h-photos-right', 'h-one-left', 'h-one-right', 'h-banner', 'h-split-center', 'h-feature-inset', 'h-text-top'],
-  quarter: ['q-photo-top', 'q-photo-bottom', 'q-portrait-circle', 'q-side-by-side'],
+  quarter: ['q-photo-top', 'q-photo-top-square', 'q-photo-bottom', 'q-photo-bottom-square', 'q-portrait-circle', 'q-side-by-side'],
 };
 const BACKGROUNDS = [
   'classic-white', 'red-rider', 'blackout', 'jersey-stripes', 'pitch-lines', 'corner-chevrons',

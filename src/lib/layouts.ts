@@ -76,11 +76,40 @@ const QUARTER: Layout[] = [
     rule: true,
   },
   {
+    id: 'q-photo-top-square',
+    size: 'quarter',
+    name: 'Square Photo on Top',
+    description: 'Photo on Top with a square crop — for a phone square or a headshot.',
+    // Photo on Top's slot, kept at its height and squared off. A quarter page
+    // is 4.25 x 5.5in, so 44% of the height is 2.42in and the same measure
+    // across is 56.94% of the width; the leftover splits either side to centre
+    // it. Everything below is Photo on Top's, untouched.
+    photos: [{ x: 21.53, y: 7, w: 56.94, h: 44 }],
+    playerName: { x: 6, y: 53, w: 88, h: 9.5 },
+    message: { x: 9, y: 63.5, w: 82, h: 22 },
+    attribution: { x: 9, y: 86, w: 82, h: 7 },
+    align: 'center',
+    rule: true,
+  },
+  {
     id: 'q-photo-bottom',
     size: 'quarter',
     name: 'Message First',
     description: 'Name and message up top, photo anchoring the bottom.',
     photos: [{ x: 8, y: 45, w: 84, h: 41 }],
+    playerName: { x: 6, y: 5, w: 88, h: 9.5 },
+    message: { x: 9, y: 16, w: 82, h: 26 },
+    attribution: { x: 9, y: 87.5, w: 82, h: 7 },
+    align: 'center',
+    rule: true,
+  },
+  {
+    id: 'q-photo-bottom-square',
+    size: 'quarter',
+    name: 'Message First, Square Photo',
+    description: 'Message First with a square crop under it.',
+    // 41% of 5.5in is 2.255in, which is 53.06% of the 4.25in width.
+    photos: [{ x: 23.47, y: 45, w: 53.06, h: 41 }],
     playerName: { x: 6, y: 5, w: 88, h: 9.5 },
     message: { x: 9, y: 16, w: 82, h: 26 },
     attribution: { x: 9, y: 87.5, w: 82, h: 7 },
@@ -277,6 +306,21 @@ const FULL: Layout[] = [
     // sit beside, the picture takes the whole top of the page and the message
     // gets a taller box than any other full-page layout except the Triptych.
     photos: [{ x: 6, y: 5, w: 88, h: 45 }],
+    playerName: { x: 6, y: 52.5, w: 88, h: 10 },
+    message: { x: 11, y: 64, w: 78, h: 24 },
+    attribution: { x: 11, y: 89.5, w: 78, h: 6 },
+    align: 'center',
+    rule: true,
+  },
+  {
+    id: 'f-one-top-square',
+    size: 'full',
+    name: 'Square Photo, Top',
+    description: 'One Photo, Top with a square crop — and the same room for a long message.',
+    // One Photo, Top's slot at the same height, squared off: 45% of an 11in
+    // page is 4.95in, which is 58.24% of the 8.5in width. The type below is
+    // that layout's, unchanged, so the two differ only in the shape up top.
+    photos: [{ x: 20.88, y: 5, w: 58.24, h: 45 }],
     playerName: { x: 6, y: 52.5, w: 88, h: 10 },
     message: { x: 11, y: 64, w: 78, h: 24 },
     attribution: { x: 11, y: 89.5, w: 78, h: 6 },

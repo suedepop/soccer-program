@@ -202,9 +202,10 @@ certificate itself.
    1. **Background** — 30-odd backgrounds in the Red Riders' red / black / white,
       including the photographic set. This sets the palette and the default type
       everything after it is previewed against.
-   2. **Layout** — 8 full-page, 8 half-page, 4 quarter-page arrangements. The
+   2. **Layout** — 9 full-page, 8 half-page, 6 quarter-page arrangements. The
       layout decides how many photos there are to place — including one-photo
-      layouts at every size, for the family with a single good picture.
+      layouts at every size, for the family with a single good picture, and
+      square-crop versions of three of them for a phone square or a headshot.
    3. **Photos** — choose from the library per slot, with a resolution check and a
       drag-to-nudge / zoom crop control.
    4. **Copy** — player name, message, and attribution, each with bold / italic /
@@ -793,7 +794,7 @@ node scripts/measure-fonts.mjs                          # print avgGlyph / boldR
 
 # With the server running:
 node scripts/smoke.mjs                                  # end-to-end check (85 assertions)
-node scripts/name-fit.mjs <admin-email> <password>      # 2,300 layout x font x name combinations
+node scripts/name-fit.mjs <admin-email> <password>      # 2,645 layout x font x name combinations
 node scripts/text-fit.mjs <admin-email> <password>      # 135 message fit + orphan combinations
 node scripts/contact-sheet.mjs <admin-email> <password> # tile every layout, background, font, effect
 ```
