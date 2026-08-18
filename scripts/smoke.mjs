@@ -407,7 +407,7 @@ for (const path of ['/', '/dashboard', '/admin', '/ads/new', `/ads/${fId}`, `/ad
 // 17. Photo library
 // ---------------------------------------------------------------------------
 cookie = '';
-await json('/api/auth/signup', 'POST', {
+const libUser = await json('/api/auth/signup', 'POST', {
   email: `lib${Date.now()}@test.local`,
   password: 'password123',
   name: 'Library Tester',
@@ -480,7 +480,46 @@ const steal = await req(`/api/ads/${strangerAd}/photos`, {
   body: JSON.stringify({ slot: 0, fileId: pick.id }),
 });
 check('cannot place another account photo', steal.status === 404, `status=${steal.status}`);
+
+// 17b. The boosters can see any library and add to it — for the parent who
+// emails them the photos instead of uploading. Adding only: the endpoint has no
+// DELETE, so an admin cannot clear out somebody else's material.
+const adminLibPath = `/api/admin/users/${libUser.id}/photos`;
+const parentPeek = await req(adminLibPath);
+check('parent blocked from the admin library API', parentPeek.status === 403, `status=${parentPeek.status}`);
+
+cookie = savedCookie;
+const adminView = await getJson(adminLibPath);
 cookie = libCookie;
+const ownView = await getJson('/api/photos');
+check(
+  'admin sees the same library the parent does',
+  adminView.photos.length === ownView.photos.length,
+  `${adminView.photos.length} vs ${ownView.photos.length}`
+);
+
+cookie = savedCookie;
+const gift = await req(adminLibPath, { method: 'POST', body: filesForm([await makeImage(2000, 1500, 175)]) });
+const giftJson = await gift.json();
+check('admin can add a photo to a parent library', gift.ok && giftJson.added === 1, `added=${giftJson.added}`);
+// The route exports GET and POST only, so the framework answers 405 — an admin
+// has no way to remove a photo from somebody else's library.
+const noDelete = await req(adminLibPath, { method: 'DELETE' });
+check('the admin library API has no delete', noDelete.status === 405, `status=${noDelete.status}`);
+const noSuchAccount = await req('/api/admin/users/999999/photos');
+check('admin library API 404s on an unknown account', noSuchAccount.status === 404, `status=${noSuchAccount.status}`);
+
+cookie = libCookie;
+const withGift = await getJson('/api/photos');
+check(
+  'the added photo is in the parent’s own library',
+  withGift.photos.length === ownView.photos.length + 1,
+  `${ownView.photos.length} -> ${withGift.photos.length}`
+);
+// An admin's upload is an ordinary library photo — the owner can remove it.
+const newest = withGift.photos.find((p) => !ownView.photos.some((o) => o.id === p.id));
+const delGift = await req(`/api/photos/${newest.id}`, { method: 'DELETE' });
+check('the parent can delete a photo the admin added', delGift.ok, `status=${delGift.status}`);
 
 // ---------------------------------------------------------------------------
 // 18. The 100-photo cap, including partial batches

@@ -28,12 +28,16 @@ export interface LibraryState {
 }
 
 /**
- * Loads and mutates the signed-in parent's photo library.
+ * Loads and mutates a photo library.
  *
  * Shared by the library page and the in-editor picker so both always show the
  * same set — uploading from inside an ad puts the photo in the library too.
+ *
+ * `basePath` defaults to the signed-in parent's own library. The admin screens
+ * point it at `/api/admin/users/<id>/photos`, which answers in the same shape;
+ * that endpoint has no DELETE, so callers using it must not offer `remove`.
  */
-export function usePhotoLibrary(): LibraryState {
+export function usePhotoLibrary(basePath = '/api/photos'): LibraryState {
   const [photos, setPhotos] = useState<LibraryPhoto[]>([]);
   const [limit, setLimit] = useState(100);
   const [loading, setLoading] = useState(true);
@@ -42,17 +46,17 @@ export function usePhotoLibrary(): LibraryState {
   const [error, setError] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
-    const res = await fetch('/api/photos');
+    const res = await fetch(basePath);
     const json = await res.json().catch(() => ({}));
     if (!res.ok) {
-      setError(json.error ?? 'Could not load your photos.');
+      setError(json.error ?? 'Could not load those photos.');
       setLoading(false);
       return;
     }
     setPhotos(json.photos ?? []);
     setLimit(json.limit ?? 100);
     setLoading(false);
-  }, []);
+  }, [basePath]);
 
   useEffect(() => {
     reload();
@@ -76,7 +80,7 @@ export function usePhotoLibrary(): LibraryState {
     const { ok, json } = await new Promise<{ ok: boolean; json: Record<string, unknown> }>(
       (resolve) => {
         const xhr = new XMLHttpRequest();
-        xhr.open('POST', '/api/photos');
+        xhr.open('POST', basePath);
         xhr.upload.onprogress = (e) => {
           if (!e.lengthComputable) return;
           const fraction = e.loaded / e.total;
@@ -119,8 +123,10 @@ export function usePhotoLibrary(): LibraryState {
     setError(notes.length ? notes.join(' · ') : null);
 
     return (json.added as number) ?? 0;
-  }, []);
+  }, [basePath]);
 
+  // Deleting is always the owner's own route: an admin can add to a library but
+  // not clear one out, so there is no admin equivalent to point this at.
   const remove = useCallback(async (id: number) => {
     setError(null);
     const res = await fetch(`/api/photos/${id}`, { method: 'DELETE' });

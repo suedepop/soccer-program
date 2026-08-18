@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 import type { AdminUser } from '@/lib/admin';
 
@@ -82,7 +83,14 @@ export default function AdminUsersTable({ users }: { users: AdminUser[] }) {
                   )}
                 </td>
                 <td>{u.ads}</td>
-                <td>{u.photos}</td>
+                <td>
+                  <Link href={`/admin/photos/${u.id}`}>
+                    {u.photos}
+                    <span className="hint" style={{ marginLeft: 6 }}>
+                      {u.photos ? 'open' : 'add'}
+                    </span>
+                  </Link>
+                </td>
                 <td style={{ minWidth: 210 }}>
                   {issued[u.id] ? (
                     <div className="notice notice-ok" style={{ padding: '8px 10px' }}>

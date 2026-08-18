@@ -56,6 +56,73 @@ export function listUsers(): AdminUser[] {
   }));
 }
 
+/** One account's photo library, summarised for the overview screen. */
+export interface LibrarySummary {
+  userId: number;
+  name: string;
+  email: string;
+  isAdmin: boolean;
+  count: number;
+  /** Newest first, capped at the preview size the caller asked for. */
+  recent: { id: number; url: string; origName: string; width: number; height: number }[];
+}
+
+/**
+ * Every account's library at a glance, newest account first.
+ *
+ * Two queries for the whole site rather than two per account: a photo row is
+ * small, and the alternative is an N+1 that grows with every family that signs
+ * up. Only the preview thumbnails are kept — the full list is one click away
+ * and there is no point shipping 100 rows per parent to draw eight of them.
+ */
+export function listLibraries(preview = 8): LibrarySummary[] {
+  const users = db()
+    .prepare(
+      `SELECT id, email, name, is_admin FROM users
+        ORDER BY created_at DESC, id DESC`
+    )
+    .all() as { id: number; email: string; name: string; is_admin: number }[];
+
+  const files = db()
+    .prepare(
+      `SELECT id, user_id, orig_name, width, height FROM files
+        ORDER BY created_at DESC, id DESC`
+    )
+    .all() as {
+    id: number;
+    user_id: number;
+    orig_name: string;
+    width: number;
+    height: number;
+  }[];
+
+  const byUser = new Map<number, LibrarySummary['recent']>();
+  const counts = new Map<number, number>();
+  for (const f of files) {
+    counts.set(f.user_id, (counts.get(f.user_id) ?? 0) + 1);
+    const list = byUser.get(f.user_id) ?? [];
+    if (list.length < preview) {
+      list.push({
+        id: f.id,
+        url: `/api/files/${f.id}`,
+        origName: f.orig_name,
+        width: f.width,
+        height: f.height,
+      });
+    }
+    byUser.set(f.user_id, list);
+  }
+
+  return users.map((u) => ({
+    userId: u.id,
+    name: u.name,
+    email: u.email,
+    isAdmin: !!u.is_admin,
+    count: counts.get(u.id) ?? 0,
+    recent: byUser.get(u.id) ?? [],
+  }));
+}
+
 /**
  * No I, O, 0 or 1 — this gets read down a phone to a parent who is trying to
  * type it at the same time. 32 characters divides 256 exactly, so taking bytes

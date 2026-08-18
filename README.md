@@ -488,18 +488,46 @@ never costs a parent part of their message.
 
 ## What the admin sees
 
-Three sections behind the one password, with the section nav in
+Four sections behind the one password, with the section nav in
 `src/app/(site)/admin/layout.tsx`:
 
 | Section | What it is for |
 | --- | --- |
 | **Dashboard** (`/admin`) | Every ad: thumbnail, who ordered it, contact details, low-resolution flags, a note field for tracking payments, and totals for money due, money collected, and how long the book runs |
 | **Users** (`/admin/users`) | Every account, when they joined, when they last got in, how many ads and photos they have — and a password reset |
+| **Photos** (`/admin/photos`) | Every account's photo library, and a way to add to any of them |
 | **Audit** (`/admin/audit`) | Who signed in, who tried and failed, and from where |
 
 The gate lives in the layout, but **each page checks `is_admin` again for
 itself**. A layout that declines to render its children does not stop those
 children being *executed*, and these pages read the whole database.
+
+### Uploading photos on a parent's behalf
+
+`/admin/photos` lists every account with its photo count and a strip of
+thumbnails; clicking through to `/admin/photos/[id]` opens that library in full
+and offers an upload. It exists for the parent who emails the boosters their
+media-day pictures instead of uploading them, and for the one who cannot work
+out the upload over the phone.
+
+A photo added this way is an ordinary library photo belonging to that account:
+theirs to place into any ad, and theirs to delete. Three rules shape it:
+
+- **The admin can add but not delete.** `/api/admin/users/[id]/photos` has a GET
+  and a POST and no DELETE, so this is not a UI-only restraint. Adding to
+  somebody's library is help; clearing one out is destroying a parent's own
+  material, and only the owner can see what they still mean to use.
+- **The cap belongs to the account, not the uploader.** A helpful admin cannot
+  fill a library past `MAX_LIBRARY_PHOTOS` and leave its owner unable to add
+  anything of their own; past the cap the upload is refused and names whose
+  library is full.
+- **No new way to read a photo.** `/api/files/[id]` already served any file to an
+  admin, so the thumbnails are the same URLs the parent's own library uses.
+
+The browser drives both libraries through the same `usePhotoLibrary` hook and
+the same `PhotoTile`, pointed at a different base path — the admin endpoint
+answers in the shape `/api/photos` does. The one visible difference is the
+delete button, which the admin view does not pass.
 
 ### Resetting a parent's password
 
@@ -721,7 +749,7 @@ node scripts/fetch-fonts.mjs                            # download woff2 + write
 node scripts/measure-fonts.mjs                          # print avgGlyph / boldRatio
 
 # With the server running:
-node scripts/smoke.mjs                                  # end-to-end check (68 assertions)
+node scripts/smoke.mjs                                  # end-to-end check (75 assertions)
 node scripts/name-fit.mjs <admin-email> <password>      # 2,300 layout x font x name combinations
 node scripts/text-fit.mjs <admin-email> <password>      # 135 message fit + orphan combinations
 node scripts/contact-sheet.mjs <admin-email> <password> # tile every layout, background, font, effect

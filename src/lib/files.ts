@@ -4,6 +4,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import sharp from 'sharp';
 import { db, UPLOAD_DIR } from './db';
+import { MAX_LIBRARY_PHOTOS } from './config';
 
 /** Big enough for a full-bleed 8.5x11 at 300 DPI (2550x3300) with headroom. */
 const MAX_DIMENSION = 4500;
@@ -90,6 +91,44 @@ export async function storeUpload(userId: number, file: File): Promise<StoredFil
     origName: file.name,
     bytes: buffer.byteLength,
   };
+}
+
+/** How many more photos this library will hold. */
+export function libraryRoom(userId: number): number {
+  return Math.max(0, MAX_LIBRARY_PHOTOS - countPhotos(userId));
+}
+
+/**
+ * Stores a batch into one account's library, up to `room` files.
+ *
+ * Uploads past the cap are counted and skipped rather than failing the batch,
+ * and a file we cannot read is reported by name and the rest still land — see
+ * the note on the parent's POST route. Callers word the "library is full" case
+ * themselves, because the parent uploading to their own library and an admin
+ * uploading to somebody else's need different sentences.
+ */
+export async function storePhotos(
+  userId: number,
+  files: File[],
+  room: number
+): Promise<{ added: number; skipped: number; errors: string[] }> {
+  const errors: string[] = [];
+  let added = 0;
+
+  for (const file of files.slice(0, room)) {
+    try {
+      await storeUpload(userId, file);
+      added++;
+    } catch (err) {
+      if (err instanceof UploadError) {
+        errors.push(`${file.name}: ${err.message}`);
+        continue;
+      }
+      throw err;
+    }
+  }
+
+  return { added, skipped: files.length - Math.min(files.length, room), errors };
 }
 
 /** One image in a parent's library, ready to drop into any ad. */

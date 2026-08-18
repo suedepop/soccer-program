@@ -1036,6 +1036,42 @@ a.chip {
   margin-top: 2px;
 }
 
+/* A library at a glance on the admin's overview: one scrolling row of
+   thumbnails per account, rather than a grid per account that would push the
+   next family off the screen. */
+.photo-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.photo-strip img {
+  width: 84px;
+  height: 63px;
+  object-fit: cover;
+  display: block;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #f1eeec;
+}
+.photo-strip-more {
+  flex: 0 0 auto;
+  width: 84px;
+  height: 63px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px dashed var(--line);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.photo-strip a {
+  flex: 0 0 auto;
+}
+
 button.photo-tile-pick {
   padding: 0;
   cursor: pointer;
