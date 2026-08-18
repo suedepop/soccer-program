@@ -531,7 +531,7 @@ Four sections behind the one password, with the section nav in
 | Section | What it is for |
 | --- | --- |
 | **Dashboard** (`/admin`) | Every ad: thumbnail, who ordered it, contact details, low-resolution flags, a note field for tracking payments, and totals for money due, money collected, and how long the book runs |
-| **Users** (`/admin/users`) | Every account, when they joined, when they last got in, how many ads and photos they have — and a password reset |
+| **Users** (`/admin/users`) | Every account, when they joined, when they last got in, how many ads and photos they have — with a note of how many of those photos are rights-managed — and a password reset |
 | **Photos** (`/admin/photos`) | Every account's photo library, and a way to add to any of them |
 | **Audit** (`/admin/audit`) | Who signed in, who tried and failed, and from where |
 
@@ -829,7 +829,7 @@ node scripts/fetch-fonts.mjs                            # download woff2 + write
 node scripts/measure-fonts.mjs                          # print avgGlyph / boldRatio
 
 # With the server running:
-node scripts/smoke.mjs                                  # end-to-end check (85 assertions)
+node scripts/smoke.mjs                                  # end-to-end check (87 assertions)
 node scripts/name-fit.mjs <admin-email> <password>      # 2,645 layout x font x name combinations
 node scripts/text-fit.mjs <admin-email> <password>      # 135 message fit + orphan combinations
 node scripts/contact-sheet.mjs <admin-email> <password> # tile every layout, background, font, effect

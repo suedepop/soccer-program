@@ -398,7 +398,19 @@ if (pageRes.ok) {
 }
 
 // 16. pages render
-for (const path of ['/', '/dashboard', '/admin', '/ads/new', `/ads/${fId}`, `/ads/${fId}/edit`]) {
+// The admin screens are in here because each runs its own query over the whole
+// database — the accounts table counts ads, photos and rights-managed photos a
+// row at a time, and a broken column there would render as a 500, not a typo.
+for (const path of [
+  '/',
+  '/dashboard',
+  '/admin',
+  '/admin/users',
+  '/admin/photos',
+  '/ads/new',
+  `/ads/${fId}`,
+  `/ads/${fId}/edit`,
+]) {
   const r = await req(path);
   check(`GET ${path}`, r.ok, `status=${r.status}`);
 }

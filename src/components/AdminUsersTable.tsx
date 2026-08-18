@@ -90,6 +90,14 @@ export default function AdminUsersTable({ users }: { users: AdminUser[] }) {
                       {u.photos ? 'open' : 'add'}
                     </span>
                   </Link>
+                  {/* Only when there are any. A "0 rights-managed" on every row
+                      of an ordinary list is noise that hides the one row where
+                      it matters. */}
+                  {u.rightsManagedPhotos > 0 && (
+                    <div className="hint" style={{ marginTop: 2, whiteSpace: 'nowrap' }}>
+                      {u.rightsManagedPhotos} rights-managed
+                    </div>
+                  )}
                 </td>
                 <td style={{ minWidth: 210 }}>
                   {issued[u.id] ? (

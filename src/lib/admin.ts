@@ -15,6 +15,8 @@ export interface AdminUser {
   createdAt: string;
   ads: number;
   photos: number;
+  /** How many of those photos are licensed. Always <= photos. */
+  rightsManagedPhotos: number;
   /** Last successful sign-in, or null if they never have. */
   lastLoginAt: string | null;
 }
@@ -25,6 +27,8 @@ export function listUsers(): AdminUser[] {
       `SELECT u.id, u.email, u.name, u.phone, u.is_admin, u.created_at,
               (SELECT COUNT(*) FROM ads a WHERE a.user_id = u.id) AS ads,
               (SELECT COUNT(*) FROM files f WHERE f.user_id = u.id) AS photos,
+              (SELECT COUNT(*) FROM files f
+                WHERE f.user_id = u.id AND f.rights_managed = 1) AS rights_managed,
               (SELECT MAX(e.created_at) FROM login_events e
                 WHERE e.user_id = u.id AND e.kind IN ('login', 'admin')) AS last_login
          FROM users u
@@ -39,6 +43,7 @@ export function listUsers(): AdminUser[] {
     created_at: string;
     ads: number;
     photos: number;
+    rights_managed: number;
     last_login: string | null;
   }[];
 
@@ -52,6 +57,7 @@ export function listUsers(): AdminUser[] {
     createdAt: r.created_at,
     ads: r.ads,
     photos: r.photos,
+    rightsManagedPhotos: r.rights_managed,
     lastLoginAt: r.last_login,
   }));
 }
